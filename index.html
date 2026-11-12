@@ -130,7 +130,7 @@
     <div id="loginScreen" style="max-width: 400px; margin: 40px auto; text-align: center; padding: 20px;">
         <h2>ArwenSOC Flow - Login</h2>
         <p>Enter your authorized team email to access the app.</p>
-        <input type="email" id="loginEmailInput" placeholder="Enter your email" style="margin-bottom: 15px; text-align: center;">
+        <input type="email" id="loginEmailInput" placeholder="analyst@arwentech.com" style="margin-bottom: 15px; text-align: center;">
         <button onclick="handleSimpleLogin()" style="width: 100%;">Login</button>
         <p id="loginError" style="color: red; margin-top: 15px;"></p>
     </div>
@@ -196,7 +196,7 @@
 
         <div class="section">
             <h3>Authorized Emails Management</h3>
-            <p>Add/manage team emails allowed to access this tool:</p>
+            <p>Add/remove team emails strictly allowed to access this tool:</p>
             <input type="email" id="newEmailInput" placeholder="analyst@arwentech.com">
             <button onclick="addAuthorizedEmail()" style="margin-top: 10px;">Add Email</button>
             <ul id="emailList" style="margin-top: 15px;"></ul>
@@ -231,12 +231,11 @@
         "tanzeelurrehman.engr@gmail.com"
     ];
     
+    // Strict Whitelist Initialization (Only emails explicitly added here or via admin panel can login)
     if (!localStorage.getItem('authorized_emails')) {
         let defaultTeam = [
             ...ADMIN_EMAILS,
-            "analyst1@arwentech.com",
-            "analyst2@arwentech.com",
-            "soc.team@arwentech.com"
+            "tanzeel.mughal@arwentech.com"
         ];
         localStorage.setItem('authorized_emails', JSON.stringify(defaultTeam));
     }
@@ -264,25 +263,27 @@
         }
     };
 
+    // --- SECURE WHITELIST LOGIN CHECK ---
     function handleSimpleLogin() {
         let emailInput = document.getElementById('loginEmailInput').value.trim().toLowerCase();
         let errorEl = document.getElementById('loginError');
 
-        // Check if empty
         if(!emailInput) {
             errorEl.innerText = "Please enter your email.";
             return;
         }
 
-        // Check if email ends with @arwentech.com
-        if (emailInput.endsWith("@arwentech.com")) {
+        let allowedEmails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
+
+        // Check if email is explicitly in the authorized whitelist
+        if (allowedEmails.map(e => e.toLowerCase()).includes(emailInput) || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(emailInput)) {
             currentUser = emailInput;
             sessionStorage.setItem('current_user', JSON.stringify(emailInput));
             errorEl.innerText = "";
             logActivity(emailInput, "LOGIN");
             setupUserSession();
         } else {
-            errorEl.innerText = "Access Denied: Only @arwentech.com emails are authorized.";
+            errorEl.innerText = "Access Denied: Email is not authorized by Admin.";
         }
     }
 
@@ -365,13 +366,15 @@
         listUl.innerHTML = '';
         emails.forEach(email => {
             let li = document.createElement('li');
+            li.style.margin = "8px 0";
             li.innerText = email;
             if(!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase())) {
                 let delBtn = document.createElement('button');
-                delBtn.innerText = "Remove";
-                delBtn.style.marginLeft = "10px";
-                delBtn.style.padding = "2px 6px";
+                delBtn.innerText = "Remove Access";
+                delBtn.style.marginLeft = "15px";
+                delBtn.style.padding = "3px 8px";
                 delBtn.style.backgroundColor = "red";
+                delBtn.style.fontSize = "0.8rem";
                 delBtn.onclick = () => removeEmail(email);
                 li.appendChild(delBtn);
             }
@@ -390,10 +393,8 @@
 
     // --- CORE PROCESSING & APP DOWN ERROR HANDLING ---
     function processReport() {
-        // Check if Admin has set the app to DOWN
         let appStatus = localStorage.getItem('app_status') || 'UP';
         if (appStatus === 'DOWN') {
-            // Turn entire screen white and show the exact requested error at the bottom
             document.body.innerHTML = `
                 <div style="background-color: white; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 40px; margin: 0;">
                     <p style="color: #333; font-family: monospace; font-size: 1rem; margin: 0;">missclm function error xlsx</p>
@@ -582,7 +583,7 @@
             loadAdminPanelData();
             alert("Email authorized successfully.");
         } else {
-            alert("Email already exists.");
+            alert("Email already exists in whitelist.");
         }
     }
 
