@@ -258,7 +258,7 @@
             usersTable = await response.json();
             document.getElementById('loadingOverlay').style.display = 'none';
         } catch(e) {
-            document.getElementById('loadingOverlay').innerText = "Error connecting to Google Sheet! Check internet.";
+            document.getElementById('loadingOverlay').innerText = "Error connecting Check internet.";
             console.error(e);
             return;
         }
