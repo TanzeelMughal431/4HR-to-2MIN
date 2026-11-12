@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4HR to 2MIN</title>
+    <!-- SheetJS for Excel/CSV parsing & writing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #00994c;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h2, h3 {
+            color: var(--primary-color);
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        input[type="file"], input[type="text"], input[type="email"] {
+            width: 100%;
+            background: #fff;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #007d3d;
+        }
+        .btn-danger { background-color: #d9534f; }
+        .btn-danger:hover { background-color: #c9302c; }
+        .btn-secondary { background-color: #0066cc; }
+        .btn-secondary:hover { background-color: #004b99; }
+        
+        #loginScreen, #appScreen, #adminPanel { display: none; }
+        
+        /* Stats Cards */
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 6px;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+        }
+        .stat-high { background-color: #d9534f; }
+        .stat-med { background-color: #f0ad4e; }
+        .stat-low { background-color: #0275d8; }
+        .stat-total { background-color: #5cb85c; }
+
+        table.preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+        table.preview-table th, table.preview-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table.preview-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        /* Keyword Highlights in Preview */
+        .highlight-high { background-color: #f9dede !important; color: #a94442; font-weight: bold; }
+        .highlight-med { background-color: #fcf8e3 !important; color: #8a6d3b; font-weight: bold; }
+        .highlight-low { background-color: #d9edf7 !important; color: #31708f; }
+
+        .table-responsive {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .user-info {
+            float: right;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- SIMPLE LOGIN SCREEN -->
+    <div id="loginScreen" style="max-width: 400px; margin: 40px auto; text-align: center; padding: 20px;">
+        <h2>ArwenSOC Flow - Login</h2>
+        <p>Enter your authorized team email to access the app.</p>
+        <input type="email" id="loginEmailInput" placeholder="Enter your email" style="margin-bottom: 15px; text-align: center;">
+        <button onclick="handleSimpleLogin()" style="width: 100%;">Login</button>
+        <p id="loginError" style="color: red; margin-top: 15px;"></p>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="appScreen">
+        <div class="user-info">
+            <span id="loggedInUserEmail"></span> | 
+            <button onclick="logout()" class="btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
+        </div>
+        <h2>4HR to 2MIN</h2>
+        <div id="adminNavBtn" style="margin-bottom: 15px; display:none;">
+            <button onclick="showAdminPanel()" class="btn-secondary">Open Admin Panel & Reports</button>
+        </div>
+
+        <!-- Step 1: Upload File -->
+        <div class="section">
+            <h3>1. Upload Excel / CSV File</h3>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
+        </div>
+
+        <!-- Step 2: Process Button -->
+        <button type="button" onclick="processReport()">Clean and Process Data</button>
+        <div class="status" id="statusMsg" style="margin-top: 10px; font-weight: bold; color: var(--primary-color);"></div>
+
+        <!-- Step 3: Statistics Dashboard -->
+        <div id="statsSection" style="display:none; margin-top: 25px;">
+            <h3>Statistics Dashboard</h3>
+            <div class="stats-container">
+                <div class="stat-card stat-total">Total Offenses<br><span id="statTotalCount">0</span></div>
+                <div class="stat-card stat-high">High (>=8)<br><span id="statHighCount">0</span></div>
+                <div class="stat-card stat-med">Medium (5-7)<br><span id="statMedCount">0</span></div>
+                <div class="stat-card stat-low">Low (0-4)<br><span id="statLowCount">0</span></div>
+            </div>
+        </div>
+
+        <!-- Step 4: Preview & Download -->
+        <div class="section" id="previewSection" style="display:none; margin-top: 25px;">
+            <h3>2. Output Preview (Keyword Highlighted)</h3>
+            <div class="table-responsive">
+                <table class="preview-table" id="previewTable">
+                    <thead id="previewHead"></thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+            <button type="button" id="downloadBtn" class="btn-secondary" onclick="downloadFile()" style="margin-top: 15px;">Download Cleaned Excel File</button>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL & REPORTS SCREEN -->
+    <div id="adminPanel">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button onclick="showAppScreen()" class="btn-secondary">&larr; Switch to App Mode</button>
+        </div>
+        <h2>Admin Panel & Attendance Reports</h2>
+        
+        <!-- App Up / Down Control Section -->
+        <div class="section">
+            <h3>App Shutdown Control (Up / Down)</h3>
+            <p>Current App Status: <span id="appStatusBadge" style="font-weight:bold; color: green;">UP</span></p>
+            <button id="appToggleBtn" onclick="toggleAppStatus()" class="btn-danger">Set App Down</button>
+        </div>
+
+        <div class="section">
+            <h3>Authorized Emails Management</h3>
+            <p>Add/manage team emails allowed to access this tool:</p>
+            <input type="email" id="newEmailInput" placeholder="analyst@arwentech.com">
+            <button onclick="addAuthorizedEmail()" style="margin-top: 10px;">Add Email</button>
+            <ul id="emailList" style="margin-top: 15px;"></ul>
+        </div>
+
+        <div class="section">
+            <h3>Team Login / Logout Activity Reports</h3>
+            <div style="margin-bottom: 15px;">
+                <button onclick="exportReport('day')">Download Day Report</button>
+                <button onclick="exportReport('week')">Download Week Report</button>
+                <button onclick="exportReport('month')">Download Month Report</button>
+            </div>
+            <div class="table-responsive">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Action</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityLogBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ADMIN_EMAILS = [
+        "tanzeelmughal431@gmail.com",
+        "tanzeelurrehman.engr@gmail.com"
+    ];
+    
+    if (!localStorage.getItem('authorized_emails')) {
+        let defaultTeam = [
+            ...ADMIN_EMAILS,
+            "analyst1@arwentech.com",
+            "analyst2@arwentech.com",
+            "soc.team@arwentech.com"
+        ];
+        localStorage.setItem('authorized_emails', JSON.stringify(defaultTeam));
+    }
+    
+    if (!localStorage.getItem('activity_logs')) {
+        localStorage.setItem('activity_logs', JSON.stringify([]));
+    }
+
+    // Default App Status is 'UP'
+    if (!localStorage.getItem('app_status')) {
+        localStorage.setItem('app_status', 'UP');
+    }
+
+    let currentUser = null;
+    let processedWorkbook = null;
+    let originalFileName = "lexel cleaner.xlsx";
+
+    window.onload = function() {
+        let savedUser = sessionStorage.getItem('current_user');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            setupUserSession();
+        } else {
+            document.getElementById('loginScreen').style.display = 'block';
+        }
+    };
+
+    function handleSimpleLogin() {
+        let emailInput = document.getElementById('loginEmailInput').value.trim().toLowerCase();
+        let errorEl = document.getElementById('loginError');
+
+        if(!emailInput) {
+            errorEl.innerText = "Please enter your email.";
+            return;
+        }
+
+        let allowedEmails = JSON.parse(localStorage.getItem('authorized_emails')).map(e => e.toLowerCase());
+
+        if (allowedEmails.includes(emailInput) || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(emailInput)) {
+            currentUser = emailInput;
+            sessionStorage.setItem('current_user', JSON.stringify(emailInput));
+            errorEl.innerText = "";
+            logActivity(emailInput, "LOGIN");
+            setupUserSession();
+        } else {
+            errorEl.innerText = "Access Denied: This email is not authorized.";
+        }
+    }
+
+    function setupUserSession() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('loggedInUserEmail').innerText = currentUser;
+
+        if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(currentUser.toLowerCase())) {
+            document.getElementById('adminNavBtn').style.display = 'block';
+            loadAdminPanelData();
+        } else {
+            document.getElementById('adminNavBtn').style.display = 'none';
+        }
+    }
+
+    function logout() {
+        if (currentUser) {
+            logActivity(currentUser, "LOGOUT");
+        }
+        sessionStorage.removeItem('current_user');
+        location.reload();
+    }
+
+    function logActivity(email, action) {
+        try {
+            let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+            logs.push({
+                email: email,
+                action: action,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('activity_logs', JSON.stringify(logs));
+        } catch (e) {
+            console.error("Logging error:", e);
+        }
+    }
+
+    function colLetterToIndex(letter) {
+        let column = 0;
+        let length = letter.length;
+        for (let i = 0; i < length; i++) {
+            column += (letter.charCodeAt(i) - 64) * Math.pow(26, length - i - 1);
+        }
+        return column - 1;
+    }
+
+    // --- APP TOGGLE STATUS FUNCTIONS ---
+    function toggleAppStatus() {
+        let currentStatus = localStorage.getItem('app_status');
+        if (currentStatus === 'UP') {
+            localStorage.setItem('app_status', 'DOWN');
+        } else {
+            localStorage.setItem('app_status', 'UP');
+        }
+        loadAdminPanelData();
+    }
+
+    function loadAdminPanelData() {
+        let status = localStorage.getItem('app_status') || 'UP';
+        let badge = document.getElementById('appStatusBadge');
+        let btn = document.getElementById('appToggleBtn');
+
+        if (status === 'UP') {
+            badge.innerText = "UP (Active)";
+            badge.style.color = "green";
+            btn.innerText = "Set App Down";
+            btn.className = "btn-danger";
+        } else {
+            badge.innerText = "DOWN (Inactive)";
+            badge.style.color = "red";
+            btn.innerText = "Set App Up";
+            btn.className = "btn";
+            btn.style.backgroundColor = "#00994c";
+        }
+
+        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
+        let listUl = document.getElementById('emailList');
+        listUl.innerHTML = '';
+        emails.forEach(email => {
+            let li = document.createElement('li');
+            li.innerText = email;
+            if(!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase())) {
+                let delBtn = document.createElement('button');
+                delBtn.innerText = "Remove";
+                delBtn.style.marginLeft = "10px";
+                delBtn.style.padding = "2px 6px";
+                delBtn.style.backgroundColor = "red";
+                delBtn.onclick = () => removeEmail(email);
+                li.appendChild(delBtn);
+            }
+            listUl.appendChild(li);
+        });
+
+        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let logBody = document.getElementById('activityLogBody');
+        logBody.innerHTML = '';
+        logs.slice(-50).reverse().forEach(log => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${log.email}</td><td>${log.action}</td><td>${new Date(log.timestamp).toLocaleString()}</td>`;
+            logBody.appendChild(tr);
+        });
+    }
+
+    // --- CORE PROCESSING & APP DOWN ERROR HANDLING ---
+    function processReport() {
+        // Check if Admin has set the app to DOWN
+        let appStatus = localStorage.getItem('app_status') || 'UP';
+        if (appStatus === 'DOWN') {
+            // Turn entire screen white and show the exact requested error at the bottom
+            document.body.innerHTML = `
+                <div style="background-color: white; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 40px; margin: 0;">
+                    <p style="color: #333; font-family: monospace; font-size: 1rem; margin: 0;">missclm function error xlsx</p>
+                </div>
+            `;
+            return;
+        }
+
+        const fileInput = document.getElementById('fileInput');
+        const statusMsg = document.getElementById('statusMsg');
+
+        if(fileInput.files.length === 0) {
+            alert("Pehle please koi Excel ya CSV file upload karein!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        originalFileName = "lexel cleaner_" + file.name.replace(/\.[^/.]+$/, "") + ".xlsx";
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                if(rows.length === 0) {
+                    alert("Sheet khali hai!");
+                    return;
+                }
+
+                const idxOffense = colLetterToIndex("A");
+                const idxSeverity = colLetterToIndex("U");
+                const idxDesc = colLetterToIndex("R");
+                const idxNotes = colLetterToIndex("AX");
+
+                let newRows = [];
+                newRows.push([
+                    "Offense ID", 
+                    "Description Name", 
+                    "MCBI Analyst write note time", 
+                    "Arwen Analyst write Note Time", 
+                    "Severity", 
+                    "Arwen L2 Notes"
+                ]);
+
+                let highCount = 0, medCount = 0, lowCount = 0;
+
+                for (let i = 1; i < rows.length; i++) {
+                    let row = rows[i];
+                    if(!row || row.length === 0) continue;
+
+                    let offenseVal = (idxOffense < row.length && row[idxOffense] !== undefined) ? row[idxOffense] : "";
+                    let severityVal = (idxSeverity < row.length && row[idxSeverity] !== undefined) ? row[idxSeverity] : "";
+                    let descVal = (idxDesc < row.length && row[idxDesc] !== undefined) ? row[idxDesc] : "";
+                    let rawText = (idxNotes < row.length && row[idxNotes] !== undefined) ? String(row[idxNotes]) : "";
+
+                    let numSev = Number(severityVal);
+                    if (!isNaN(severityVal) && severityVal !== "") {
+                        if (numSev >= 8) highCount++;
+                        else if (numSev >= 5) medCount++;
+                        else if (numSev >= 0) lowCount++;
+                    }
+
+                    rawText = rawText.replace(/â€¯/g, " ").replace(/\u00A0/g, " ");
+
+                    let pipePos = rawText.indexOf("|");
+                    let l2Pos = rawText.indexOf("L2_arwentech");
+
+                    let mcbTime = "";
+                    let matchPos = rawText.indexOf("SOC");
+                    if (matchPos === -1) matchPos = rawText.indexOf("ISOintern");
+
+                    if (matchPos !== -1 && pipePos > matchPos) {
+                        let tempStr = rawText.substring(matchPos, pipePos);
+                        let parts = tempStr.trim().split(/\s+/);
+                        if (parts.length >= 4) {
+                            mcbTime = parts[parts.length - 4] + " " + parts[parts.length - 3] + " " + parts[parts.length - 2] + " " + parts[parts.length - 1];
+                        }
+                    }
+
+                    let arwenTime = "";
+                    if (l2Pos !== -1) {
+                        arwenTime = rawText.substring(l2Pos + "L2_arwentech".length).trim();
+                    }
+
+                    let l2Reason = "";
+                    if (pipePos !== -1 && l2Pos > pipePos) {
+                        l2Reason = rawText.substring(pipePos + 1, l2Pos).trim();
+                    } else if (pipePos !== -1 && l2Pos === -1) {
+                        l2Reason = rawText.substring(pipePos + 1).trim();
+                    }
+
+                    newRows.push([offenseVal, descVal, mcbTime, arwenTime, severityVal, l2Reason]);
+                }
+
+                document.getElementById('statTotalCount').innerText = newRows.length - 1;
+                document.getElementById('statHighCount').innerText = highCount;
+                document.getElementById('statMedCount').innerText = medCount;
+                document.getElementById('statLowCount').innerText = lowCount;
+                document.getElementById('statsSection').style.display = 'block';
+
+                const newWs = XLSX.utils.aoa_to_sheet(newRows);
+                newWs['!cols'] = [
+                    {wch: 10.20}, {wch: 47.20}, {wch: 11.40}, {wch: 11.40}, {wch: 6.80}, {wch: 54.80}
+                ];
+
+                processedWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(processedWorkbook, newWs, "Cleaned Report");
+
+                renderPreview(newRows);
+                statusMsg.innerText = "Data successfully cleaned and processed!";
+                document.getElementById('previewSection').style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+                alert("Error during cleaning: Column mapping error detected.");
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderPreview(rows) {
+        const thead = document.getElementById('previewHead');
+        const tbody = document.getElementById('previewBody');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        let headRow = document.createElement('tr');
+        rows[0].forEach(text => {
+            let th = document.createElement('th');
+            th.innerText = text;
+            headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+
+        let limit = Math.min(rows.length, 50);
+        for(let i = 1; i < limit; i++) {
+            let tr = document.createElement('tr');
+            let sevVal = Number(rows[i][4]);
+
+            if (!isNaN(sevVal) && rows[i][4] !== "") {
+                if (sevVal >= 8) tr.classList.add('highlight-high');
+                else if (sevVal >= 5) tr.classList.add('highlight-med');
+                else if (sevVal >= 0) tr.classList.add('highlight-low');
+            }
+
+            rows[i].forEach(val => {
+                let td = document.createElement('td');
+                td.innerText = val !== undefined ? val : '';
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        }
+    }
+
+    function downloadFile() {
+        if(!processedWorkbook) return;
+        XLSX.writeFile(processedWorkbook, originalFileName);
+    }
+
+    function showAdminPanel() {
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadAdminPanelData();
+    }
+
+    function showAppScreen() {
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+    }
+
+    function addAuthorizedEmail() {
+        let input = document.getElementById('newEmailInput');
+        let email = input.value.trim().toLowerCase();
+        if(!email) return;
+
+        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
+        if(!emails.includes(email)) {
+            emails.push(email);
+            localStorage.setItem('authorized_emails', JSON.stringify(emails));
+            input.value = '';
+            loadAdminPanelData();
+            alert("Email authorized successfully.");
+        } else {
+            alert("Email already exists.");
+        }
+    }
+
+    function removeEmail(email) {
+        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
+        emails = emails.filter(e => e !== email);
+        localStorage.setItem('authorized_emails', JSON.stringify(emails));
+        loadAdminPanelData();
+    }
+
+    function exportReport(period) {
+        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let now = new Date();
+        
+        let filtered = logs.log ? logs : logs.filter(log => {
+            let logDate = new Date(log.timestamp);
+            if(period === 'day') {
+                return logDate.toDateString() === now.toDateString();
+            } else if(period === 'week') {
+                let diffTime = Math.abs(now - logDate);
+                let diffDays = diffTime / (1000 * 60 * 60 * 24);
+                return diffDays <= 7;
+            } else if(period === 'month') {
+                return logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear();
+            }
+            return true;
+        });
+
+        let reportData = [["Email", "Action", "Timestamp"]];
+        filtered.forEach(l => reportData.push([l.email, l.action, l.timestamp]));
+
+        let ws = XLSX.utils.aoa_to_sheet(reportData);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${period.toUpperCase()} Report`);
+        XLSX.writeFile(wb, `Team_Activity_${period}_Report.xlsx`);
+    }
+</script>
+
+</body>
+</html>
