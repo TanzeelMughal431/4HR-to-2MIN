@@ -234,20 +234,18 @@
 </div>
 
 <script>
-    // --- LIVE CENTRAL SYNC & AUTO-RESET CONFIGURATION ---
-    // Jab bhi aap yahan version change karenge (e.g. v2.3 se v2.4), har user ke browser ka 
-    // purana data automatically clean ho jayega aur yeh naya centralized table load ho jayega.
-    const APP_VERSION = "v2.3"; 
-    
+    // --- FORCE RESET VERSION TO CLEAR ALL CACHE ---
+    const APP_VERSION = "v2.4"; 
     if (localStorage.getItem('arwen_app_ver') !== APP_VERSION) {
-        localStorage.clear(); // Purana saara local storage clean kar dega
+        localStorage.clear(); // Saara purana storage clean kar dega
         localStorage.setItem('arwen_app_ver', APP_VERSION);
     }
 
-    // Yahan aapke live authorized users aur admins ka central table hai:
+    // Yahan apni email ko exact sahi password ke sath add kar diya hai
     const INITIAL_USERS = [
         { username: "tanzeelmughal431@gmail.com", pass: "arwen786", role: "admin" },
-        { username: "tanzeelurrehman.engr@gmail.com", pass: "lexel786", role: "admin" }
+        { username: "tanzeelurrehman.engr@gmail.com", pass: "lexel786", role: "admin" },
+        { username: "tanzeel.mughal@arwentech.com", pass: "arwen786", role: "admin" }
     ];
 
     if (!localStorage.getItem('arwen_users_table')) {
@@ -334,7 +332,6 @@
         loadAdminData();
     }
 
-    // --- ADMIN PANEL USER & PASSWORD MANAGEMENT ---
     function loadAdminData() {
         let status = localStorage.getItem('app_status') || 'UP';
         let badge = document.getElementById('appStatusBadge');
@@ -377,7 +374,6 @@
         });
     }
 
-    // Random Password Generator using arwen786 or lexel786 style
     function generateRandomPassword() {
         const prefixes = ["arwen", "lexel", "soc", "qradar", "arwentech"];
         const suffixes = ["786", "123", "99", "2026", "sec"];
@@ -544,7 +540,7 @@
             let cls = '';
             if(!isNaN(sev)) {
                 if(sev >= 8) cls = 'highlight-high';
-                else if(sev >= 5) cls, cls = 'highlight-med';
+                else if(sev >= 5) cls = 'highlight-med';
                 else cls = 'highlight-low';
             }
             tbody.innerHTML += `<tr class="${cls}">` + r.map(v => `<td>${v || ''}</td>`).join('') + `</tr>`;
