@@ -40,7 +40,7 @@
             border-radius: 6px;
             background: #fafafa;
         }
-        input[type="text"], input[type="password"] {
+        input[type="text"], input[type="password"], input[type="email"] {
             width: 100%;
             background: #fff;
             padding: 8px;
@@ -122,12 +122,12 @@
 <body>
 
 <div class="container">
-    <!-- SECURE LOGIN SCREEN WITH USERNAME & PASSWORD -->
+    <!-- SECURE LOGIN SCREEN -->
     <div id="loginScreen" style="max-width: 400px; margin: 40px auto; text-align: center; padding: 20px;">
-        <h2>ArwenSOC Flow - Secure Login</h2>
-        <p>Enter your authorized username & password.</p>
-        <input type="text" id="loginUsername" placeholder="Username (e.g. tanzeel.mughal)">
-        <input type="password" id="loginPassword" placeholder="Password (e.g. arwen786)">
+        <h2>ArwenSOC Flow - Login</h2>
+        <p>Enter your authorized email/username & password.</p>
+        <input type="text" id="loginUsername" placeholder="Email or Username">
+        <input type="password" id="loginPassword" placeholder="Password">
         <button onclick="handleSecureLogin()" style="width: 100%; margin-top: 10px;">Login</button>
         <p id="loginError" style="color: red; margin-top: 15px;"></p>
     </div>
@@ -157,7 +157,7 @@
             <h3>Statistics Dashboard</h3>
             <div class="stats-container">
                 <div class="stat-card stat-total">Total Offenses<br><span id="statTotalCount">0</span></div>
-                <div class="stat-card stat-high">High (>=8)<br><span id="statHighCount">0</span></div>
+                <div class="stat-card stat-high">High (10-8)<br><span id="statHighCount">0</span></div>
                 <div class="stat-card stat-med">Medium (5-7)<br><span id="statMedCount">0</span></div>
                 <div class="stat-card stat-low">Low (0-4)<br><span id="statLowCount">0</span></div>
             </div>
@@ -189,22 +189,21 @@
             <button id="appToggleBtn" onclick="toggleAppStatus()" class="btn-danger">Set App Down</button>
         </div>
 
-        <!-- Centralized 10-15 Accounts Table / Management -->
+        <!-- User Management Table with Password Visibility & Update -->
         <div class="section">
-            <h3>Manage Authorized Users (Table List)</h3>
-            <p>Add new team accounts with custom passwords (e.g. arwen786 / lexel786):</p>
-            <input type="text" id="newUsername" placeholder="Username (e.g. analyst3)">
-            <input type="password" id="newPassword" placeholder="Password (e.g. arwen786)">
-            <button onclick="addNewUser()" style="margin-top: 5px;">Create / Add User</button>
+            <h3>Manage Authorized Users & Passwords</h3>
+            <p>Add new team accounts. A secure password (arwen786 / lexel786 format) will be auto-generated instantly:</p>
+            <input type="text" id="newUsername" placeholder="Enter Email or Username (e.g. analyst@arwentech.com)">
+            <button onclick="addNewUser()" style="margin-top: 5px;">Add User & Generate Password</button>
             
             <div class="table-responsive" style="margin-top: 15px;">
                 <table class="preview-table">
                     <thead>
                         <tr>
-                            <th>Username</th>
+                            <th>Username / Email</th>
                             <th>Password</th>
                             <th>Role</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="userTableBody"></tbody>
@@ -235,13 +234,11 @@
 </div>
 
 <script>
-    // 10-15 Centralized User Accounts Table (Username + Password)
+    // Initial Authorized Users Table
     const INITIAL_USERS = [
-        { username: "tanzeelmughal431", pass: "arwen786", role: "admin" },
-        { username: "tanzeelurrehman", pass: "lexel786", role: "admin" },
-        { username: "analyst1", pass: "arwen786", role: "user" },
-        { username: "analyst2", pass: "lexel786", role: "user" },
-        { username: "soc.team", pass: "arwen786", role: "user" }
+        { username: "tanzeelmughal431@gmail.com", pass: "arwen786", role: "admin" },
+        { username: "tanzeelurrehman.engr@gmail.com", pass: "lexel786", role: "admin" },
+        { username: "tanzeel.mughal@arwentech.com", pass: "arwen786", role: "admin" }
     ];
 
     if (!localStorage.getItem('arwen_users_table')) {
@@ -269,17 +266,17 @@
     };
 
     function handleSecureLogin() {
-        let uInput = document.getElementById('loginUsername').value.trim();
+        let uInput = document.getElementById('loginUsername').value.trim().toLowerCase();
         let pInput = document.getElementById('loginPassword').value.trim();
         let errorEl = document.getElementById('loginError');
 
         if(!uInput || !pInput) {
-            errorEl.innerText = "Please enter both username and password.";
+            errorEl.innerText = "Please enter both username/email and password.";
             return;
         }
 
         let usersTable = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
-        let matchedUser = usersTable.find(u => u.username.toLowerCase() === uInput.toLowerCase() && u.pass === pInput);
+        let matchedUser = usersTable.find(u => u.username.toLowerCase() === uInput && u.pass === pInput);
 
         if (matchedUser) {
             currentUser = matchedUser;
@@ -288,7 +285,7 @@
             logActivity(matchedUser.username, "LOGIN");
             setupUserSession();
         } else {
-            errorEl.innerText = "Access Denied: Invalid username or password.";
+            errorEl.innerText = "Access Denied: Unrecognized account or incorrect password.";
         }
     }
 
@@ -328,6 +325,7 @@
         loadAdminData();
     }
 
+    // --- ADMIN PANEL USER & PASSWORD MANAGEMENT ---
     function loadAdminData() {
         let status = localStorage.getItem('app_status') || 'UP';
         let badge = document.getElementById('appStatusBadge');
@@ -346,7 +344,17 @@
         tbody.innerHTML = '';
         users.forEach(u => {
             let tr = document.createElement('tr');
-            tr.innerHTML = `<td>${u.username}</td><td>••••••</td><td>${u.role}</td><td>${u.username !== 'tanzeelmughal431' ? `<button class="btn-danger" style="padding:2px 6px; font-size:0.8rem;" onclick="removeUser('${u.username}')">Remove</button>` : 'Protected'}</td>`;
+            tr.innerHTML = `
+                <td>${u.username}</td>
+                <td>
+                    <span id="pwd-text-${u.username.replace(/[@.]/g, '_')}">••••••</span>
+                    <button onclick="togglePassword('${u.username}')" style="padding:2px 6px; font-size:0.75rem; margin-left:5px;" class="btn-secondary">Show</button>
+                </td>
+                <td>${u.role}</td>
+                <td>
+                    <button onclick="updatePassword('${u.username}')" style="padding:2px 6px; font-size:0.8rem; background-color:#f0ad4e;">Update Pwd</button>
+                    ${u.username !== 'tanzeelmughal431@gmail.com' ? `<button class="btn-danger" style="padding:2px 6px; font-size:0.8rem; margin-left:5px;" onclick="removeUser('${u.username}')">Remove</button>` : ''}
+                </td>`;
             tbody.appendChild(tr);
         });
 
@@ -360,29 +368,71 @@
         });
     }
 
+    // Random Password Generator using arwen786 or lexel786 style
+    function generateRandomPassword() {
+        const prefixes = ["arwen", "lexel", "soc", "qradar", "arwentech"];
+        const suffixes = ["786", "123", "99", "2026", "sec"];
+        let p1 = prefixes[Math.floor(Math.random() * prefixes.length)];
+        let p2 = suffixes[Math.floor(Math.random() * suffixes.length)];
+        return p1 + p2;
+    }
+
     function addNewUser() {
-        let u = document.getElementById('newUsername').value.trim();
-        let p = document.getElementById('newPassword').value.trim();
-        if(!u || !p) { alert("Enter both username and password!"); return; }
+        let uInput = document.getElementById('newUsername').value.trim().toLowerCase();
+        if(!uInput) { alert("Please enter username or email!"); return; }
 
         let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
-        if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
-            alert("Username already exists!"); return;
+        if(users.some(x => x.username.toLowerCase() === uInput)) {
+            alert("User already exists!"); return;
         }
 
-        users.push({ username: u, pass: p, role: "user" });
+        let autoPass = generateRandomPassword();
+        users.push({ username: uInput, pass: autoPass, role: "user" });
         localStorage.setItem('arwen_users_table', JSON.stringify(users));
+        
         document.getElementById('newUsername').value = '';
-        document.getElementById('newPassword').value = '';
         loadAdminData();
-        alert("User added successfully with password.");
+        alert(`User successfully added!\nUsername: ${uInput}\nGenerated Password: ${autoPass}`);
+    }
+
+    function togglePassword(uname) {
+        let spanId = "pwd-text-" + uname.replace(/[@.]/g, '_');
+        let span = document.getElementById(spanId);
+        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        let userObj = users.find(x => x.username === uname);
+        
+        if(span && userObj) {
+            if(span.innerText === "••••••") {
+                span.innerText = userObj.pass;
+            } else {
+                span.innerText = "••••••";
+            }
+        }
+    }
+
+    function updatePassword(uname) {
+        let newPass = prompt(`Enter new password for ${uname} (e.g. arwen786 or lexel786):`);
+        if(!newPass) return;
+
+        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        users = users.map(u => {
+            if(u.username === uname) {
+                u.pass = newPass.trim();
+            }
+            return u;
+        });
+        localStorage.setItem('arwen_users_table', JSON.stringify(users));
+        loadAdminData();
+        alert(`Password updated successfully for ${uname}!`);
     }
 
     function removeUser(uname) {
-        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
-        users = users.filter(x => x.username !== uname);
-        localStorage.setItem('arwen_users_table', JSON.stringify(users));
-        loadAdminData();
+        if(confirm(`Are you sure you want to remove access for ${uname}?`)) {
+            let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+            users = users.filter(x => x.username !== uname);
+            localStorage.setItem('arwen_users_table', JSON.stringify(users));
+            loadAdminData();
+        }
     }
 
     function colLetterToIndex(letter) {
