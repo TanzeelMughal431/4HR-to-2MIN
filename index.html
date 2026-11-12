@@ -234,14 +234,17 @@
 </div>
 
 <script>
-    // --- AUTO-CLEAR LOCALSTORAGE ON NEW VERSION & LOAD FRESH USERS ---
-    const APP_VERSION = "v2.2"; // Version change karte hi purana storage auto-clear ho jayega
+    // --- LIVE CENTRAL SYNC & AUTO-RESET CONFIGURATION ---
+    // Jab bhi aap yahan version change karenge (e.g. v2.3 se v2.4), har user ke browser ka 
+    // purana data automatically clean ho jayega aur yeh naya centralized table load ho jayega.
+    const APP_VERSION = "v2.3"; 
+    
     if (localStorage.getItem('arwen_app_ver') !== APP_VERSION) {
-        localStorage.clear(); // Saara purana local storage clean kar dega bina user ki permission ke
+        localStorage.clear(); // Purana saara local storage clean kar dega
         localStorage.setItem('arwen_app_ver', APP_VERSION);
     }
 
-    // Initial Authorized Users Table (Yahan se tanzeel.mughal@arwentech.com remove ho chuka hai)
+    // Yahan aapke live authorized users aur admins ka central table hai:
     const INITIAL_USERS = [
         { username: "tanzeelmughal431@gmail.com", pass: "arwen786", role: "admin" },
         { username: "tanzeelurrehman.engr@gmail.com", pass: "lexel786", role: "admin" }
@@ -452,7 +455,7 @@
 
     function processReport() {
         if(localStorage.getItem('app_status') === 'DOWN') {
-            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
+            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
             return;
         }
 
@@ -541,7 +544,7 @@
             let cls = '';
             if(!isNaN(sev)) {
                 if(sev >= 8) cls = 'highlight-high';
-                else if(sev >= 5) cls = 'highlight-med';
+                else if(sev >= 5) cls, cls = 'highlight-med';
                 else cls = 'highlight-low';
             }
             tbody.innerHTML += `<tr class="${cls}">` + r.map(v => `<td>${v || ''}</td>`).join('') + `</tr>`;
