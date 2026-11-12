@@ -268,21 +268,21 @@
         let emailInput = document.getElementById('loginEmailInput').value.trim().toLowerCase();
         let errorEl = document.getElementById('loginError');
 
+        // Check if empty
         if(!emailInput) {
             errorEl.innerText = "Please enter your email.";
             return;
         }
 
-        let allowedEmails = JSON.parse(localStorage.getItem('authorized_emails')).map(e => e.toLowerCase());
-
-        if (allowedEmails.includes(emailInput) || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(emailInput)) {
+        // Check if email ends with @arwentech.com
+        if (emailInput.endsWith("@arwentech.com")) {
             currentUser = emailInput;
             sessionStorage.setItem('current_user', JSON.stringify(emailInput));
             errorEl.innerText = "";
             logActivity(emailInput, "LOGIN");
             setupUserSession();
         } else {
-            errorEl.innerText = "Access Denied: This email is not authorized.";
+            errorEl.innerText = "Access Denied: Only @arwentech.com emails are authorized.";
         }
     }
 
