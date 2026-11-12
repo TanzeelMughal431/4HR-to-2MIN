@@ -157,7 +157,7 @@
             <h3>Statistics Dashboard</h3>
             <div class="stats-container">
                 <div class="stat-card stat-total">Total Offenses<br><span id="statTotalCount">0</span></div>
-                <div class="stat-card stat-high">High (10-8)<br><span id="statHighCount">0</span></div>
+                <div class="stat-card stat-high">High (>=8)<br><span id="statHighCount">0</span></div>
                 <div class="stat-card stat-med">Medium (5-7)<br><span id="statMedCount">0</span></div>
                 <div class="stat-card stat-low">Low (0-4)<br><span id="statLowCount">0</span></div>
             </div>
@@ -234,7 +234,14 @@
 </div>
 
 <script>
-    // Initial Authorized Users Table
+    // --- AUTO-CLEAR LOCALSTORAGE ON NEW VERSION & LOAD FRESH USERS ---
+    const APP_VERSION = "v2.2"; // Version change karte hi purana storage auto-clear ho jayega
+    if (localStorage.getItem('arwen_app_ver') !== APP_VERSION) {
+        localStorage.clear(); // Saara purana local storage clean kar dega bina user ki permission ke
+        localStorage.setItem('arwen_app_ver', APP_VERSION);
+    }
+
+    // Initial Authorized Users Table (Yahan se tanzeel.mughal@arwentech.com remove ho chuka hai)
     const INITIAL_USERS = [
         { username: "tanzeelmughal431@gmail.com", pass: "arwen786", role: "admin" },
         { username: "tanzeelurrehman.engr@gmail.com", pass: "lexel786", role: "admin" }
@@ -445,7 +452,7 @@
 
     function processReport() {
         if(localStorage.getItem('app_status') === 'DOWN') {
-            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
+            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
             return;
         }
 
