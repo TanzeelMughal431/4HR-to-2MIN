@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4HR to 2MIN</title>
+    <title>4HR to 2MIN - Secure ArwenSOC</title>
     <!-- SheetJS for Excel/CSV parsing & writing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -40,7 +40,7 @@
             border-radius: 6px;
             background: #fafafa;
         }
-        input[type="file"], input[type="text"], input[type="email"] {
+        input[type="text"], input[type="password"] {
             width: 100%;
             background: #fff;
             padding: 8px;
@@ -48,6 +48,7 @@
             border-radius: 4px;
             box-sizing: border-box;
             margin-top: 5px;
+            margin-bottom: 10px;
         }
         button {
             background-color: var(--primary-color);
@@ -60,9 +61,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover {
-            background-color: #007d3d;
-        }
+        button:hover { background-color: #007d3d; }
         .btn-danger { background-color: #d9534f; }
         .btn-danger:hover { background-color: #c9302c; }
         .btn-secondary { background-color: #0066cc; }
@@ -100,11 +99,8 @@
             padding: 8px;
             text-align: left;
         }
-        table.preview-table th {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        /* Keyword Highlights in Preview */
+        table.preview-table th { background-color: var(--primary-color); color: white; }
+        
         .highlight-high { background-color: #f9dede !important; color: #a94442; font-weight: bold; }
         .highlight-med { background-color: #fcf8e3 !important; color: #8a6d3b; font-weight: bold; }
         .highlight-low { background-color: #d9edf7 !important; color: #31708f; }
@@ -126,19 +122,20 @@
 <body>
 
 <div class="container">
-    <!-- SIMPLE LOGIN SCREEN -->
+    <!-- SECURE LOGIN SCREEN WITH USERNAME & PASSWORD -->
     <div id="loginScreen" style="max-width: 400px; margin: 40px auto; text-align: center; padding: 20px;">
-        <h2>ArwenSOC Flow - Login</h2>
-        <p>Enter your authorized team email to access the app.</p>
-        <input type="email" id="loginEmailInput" placeholder="analyst@arwentech.com" style="margin-bottom: 15px; text-align: center;">
-        <button onclick="handleSimpleLogin()" style="width: 100%;">Login</button>
+        <h2>ArwenSOC Flow - Secure Login</h2>
+        <p>Enter your authorized username & password.</p>
+        <input type="text" id="loginUsername" placeholder="Username (e.g. tanzeel.mughal)">
+        <input type="password" id="loginPassword" placeholder="Password (e.g. arwen786)">
+        <button onclick="handleSecureLogin()" style="width: 100%; margin-top: 10px;">Login</button>
         <p id="loginError" style="color: red; margin-top: 15px;"></p>
     </div>
 
     <!-- MAIN APP SCREEN -->
     <div id="appScreen">
         <div class="user-info">
-            <span id="loggedInUserEmail"></span> | 
+            <span id="loggedInUserDisplay"></span> | 
             <button onclick="logout()" class="btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
         </div>
         <h2>4HR to 2MIN</h2>
@@ -152,7 +149,6 @@
             <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
         </div>
 
-        <!-- Step 2: Process Button -->
         <button type="button" onclick="processReport()">Clean and Process Data</button>
         <div class="status" id="statusMsg" style="margin-top: 10px; font-weight: bold; color: var(--primary-color);"></div>
 
@@ -169,7 +165,7 @@
 
         <!-- Step 4: Preview & Download -->
         <div class="section" id="previewSection" style="display:none; margin-top: 25px;">
-            <h3>2. Output Preview (Keyword Highlighted)</h3>
+            <h3>2. Output Preview</h3>
             <div class="table-responsive">
                 <table class="preview-table" id="previewTable">
                     <thead id="previewHead"></thead>
@@ -180,40 +176,53 @@
         </div>
     </div>
 
-    <!-- ADMIN PANEL & REPORTS SCREEN -->
+    <!-- ADMIN PANEL & REPORTS -->
     <div id="adminPanel">
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button onclick="showAppScreen()" class="btn-secondary">&larr; Switch to App Mode</button>
         </div>
-        <h2>Admin Panel & Attendance Reports</h2>
+        <h2>Admin Panel & User Management</h2>
         
-        <!-- App Up / Down Control Section -->
         <div class="section">
             <h3>App Shutdown Control (Up / Down)</h3>
-            <p>Current App Status: <span id="appStatusBadge" style="font-weight:bold; color: green;">UP</span></p>
+            <p>Current Status: <span id="appStatusBadge" style="font-weight:bold; color: green;">UP</span></p>
             <button id="appToggleBtn" onclick="toggleAppStatus()" class="btn-danger">Set App Down</button>
         </div>
 
+        <!-- Centralized 10-15 Accounts Table / Management -->
         <div class="section">
-            <h3>Authorized Emails Management</h3>
-            <p>Add/remove team emails strictly allowed to access this tool:</p>
-            <input type="email" id="newEmailInput" placeholder="analyst@arwentech.com">
-            <button onclick="addAuthorizedEmail()" style="margin-top: 10px;">Add Email</button>
-            <ul id="emailList" style="margin-top: 15px;"></ul>
+            <h3>Manage Authorized Users (Table List)</h3>
+            <p>Add new team accounts with custom passwords (e.g. arwen786 / lexel786):</p>
+            <input type="text" id="newUsername" placeholder="Username (e.g. analyst3)">
+            <input type="password" id="newPassword" placeholder="Password (e.g. arwen786)">
+            <button onclick="addNewUser()" style="margin-top: 5px;">Create / Add User</button>
+            
+            <div class="table-responsive" style="margin-top: 15px;">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Role</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="section">
-            <h3>Team Login / Logout Activity Reports</h3>
+            <h3>Team Activity Audit Logs</h3>
             <div style="margin-bottom: 15px;">
                 <button onclick="exportReport('day')">Download Day Report</button>
                 <button onclick="exportReport('week')">Download Week Report</button>
-                <button onclick="exportReport('month')">Download Month Report</button>
             </div>
             <div class="table-responsive">
                 <table class="preview-table">
                     <thead>
                         <tr>
-                            <th>Email</th>
+                            <th>User</th>
                             <th>Action</th>
                             <th>Timestamp</th>
                         </tr>
@@ -226,25 +235,21 @@
 </div>
 
 <script>
-    const ADMIN_EMAILS = [
-        "tanzeelmughal431@gmail.com",
-        "tanzeelurrehman.engr@gmail.com"
+    // 10-15 Centralized User Accounts Table (Username + Password)
+    const INITIAL_USERS = [
+        { username: "tanzeelmughal431", pass: "arwen786", role: "admin" },
+        { username: "tanzeelurrehman", pass: "lexel786", role: "admin" },
+        { username: "analyst1", pass: "arwen786", role: "user" },
+        { username: "analyst2", pass: "lexel786", role: "user" },
+        { username: "soc.team", pass: "arwen786", role: "user" }
     ];
-    
-    // Strict Whitelist Initialization (Only emails explicitly added here or via admin panel can login)
-    if (!localStorage.getItem('authorized_emails')) {
-        let defaultTeam = [
-            ...ADMIN_EMAILS,
-            "tanzeel.mughal@arwentech.com"
-        ];
-        localStorage.setItem('authorized_emails', JSON.stringify(defaultTeam));
+
+    if (!localStorage.getItem('arwen_users_table')) {
+        localStorage.setItem('arwen_users_table', JSON.stringify(INITIAL_USERS));
     }
-    
     if (!localStorage.getItem('activity_logs')) {
         localStorage.setItem('activity_logs', JSON.stringify([]));
     }
-
-    // Default App Status is 'UP'
     if (!localStorage.getItem('app_status')) {
         localStorage.setItem('app_status', 'UP');
     }
@@ -254,7 +259,7 @@
     let originalFileName = "lexel cleaner.xlsx";
 
     window.onload = function() {
-        let savedUser = sessionStorage.getItem('current_user');
+        let savedUser = sessionStorage.getItem('current_user_obj');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
             setupUserSession();
@@ -263,27 +268,27 @@
         }
     };
 
-    // --- SECURE WHITELIST LOGIN CHECK ---
-    function handleSimpleLogin() {
-        let emailInput = document.getElementById('loginEmailInput').value.trim().toLowerCase();
+    function handleSecureLogin() {
+        let uInput = document.getElementById('loginUsername').value.trim();
+        let pInput = document.getElementById('loginPassword').value.trim();
         let errorEl = document.getElementById('loginError');
 
-        if(!emailInput) {
-            errorEl.innerText = "Please enter your email.";
+        if(!uInput || !pInput) {
+            errorEl.innerText = "Please enter both username and password.";
             return;
         }
 
-        let allowedEmails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
+        let usersTable = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        let matchedUser = usersTable.find(u => u.username.toLowerCase() === uInput.toLowerCase() && u.pass === pInput);
 
-        // Check if email is explicitly in the authorized whitelist
-        if (allowedEmails.map(e => e.toLowerCase()).includes(emailInput) || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(emailInput)) {
-            currentUser = emailInput;
-            sessionStorage.setItem('current_user', JSON.stringify(emailInput));
+        if (matchedUser) {
+            currentUser = matchedUser;
+            sessionStorage.setItem('current_user_obj', JSON.stringify(matchedUser));
             errorEl.innerText = "";
-            logActivity(emailInput, "LOGIN");
+            logActivity(matchedUser.username, "LOGIN");
             setupUserSession();
         } else {
-            errorEl.innerText = "Access Denied: Email is not authorized by Admin.";
+            errorEl.innerText = "Access Denied: Invalid username or password.";
         }
     }
 
@@ -291,11 +296,11 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'none';
         document.getElementById('appScreen').style.display = 'block';
-        document.getElementById('loggedInUserEmail').innerText = currentUser;
+        document.getElementById('loggedInUserDisplay').innerText = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
 
-        if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(currentUser.toLowerCase())) {
+        if (currentUser.role === 'admin') {
             document.getElementById('adminNavBtn').style.display = 'block';
-            loadAdminPanelData();
+            loadAdminData();
         } else {
             document.getElementById('adminNavBtn').style.display = 'none';
         }
@@ -303,24 +308,81 @@
 
     function logout() {
         if (currentUser) {
-            logActivity(currentUser, "LOGOUT");
+            logActivity(currentUser.username, "LOGOUT");
         }
-        sessionStorage.removeItem('current_user');
+        sessionStorage.removeItem('current_user_obj');
         location.reload();
     }
 
-    function logActivity(email, action) {
+    function logActivity(username, action) {
         try {
             let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
-            logs.push({
-                email: email,
-                action: action,
-                timestamp: new Date().toISOString()
-            });
+            logs.push({ username, action, timestamp: new Date().toISOString() });
             localStorage.setItem('activity_logs', JSON.stringify(logs));
-        } catch (e) {
-            console.error("Logging error:", e);
+        } catch(e) {}
+    }
+
+    function toggleAppStatus() {
+        let status = localStorage.getItem('app_status');
+        localStorage.setItem('app_status', status === 'UP' ? 'DOWN' : 'UP');
+        loadAdminData();
+    }
+
+    function loadAdminData() {
+        let status = localStorage.getItem('app_status') || 'UP';
+        let badge = document.getElementById('appStatusBadge');
+        let btn = document.getElementById('appToggleBtn');
+        
+        if(status === 'UP') {
+            badge.innerText = "UP (Active)"; badge.style.color = "green";
+            btn.innerText = "Set App Down"; btn.className = "btn-danger";
+        } else {
+            badge.innerText = "DOWN (Inactive)"; badge.style.color = "red";
+            btn.innerText = "Set App Up"; btn.className = "btn"; btn.style.backgroundColor = "#00994c";
         }
+
+        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        let tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${u.username}</td><td>••••••</td><td>${u.role}</td><td>${u.username !== 'tanzeelmughal431' ? `<button class="btn-danger" style="padding:2px 6px; font-size:0.8rem;" onclick="removeUser('${u.username}')">Remove</button>` : 'Protected'}</td>`;
+            tbody.appendChild(tr);
+        });
+
+        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let logBody = document.getElementById('activityLogBody');
+        logBody.innerHTML = '';
+        logs.slice(-30).reverse().forEach(l => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${l.username}</td><td>${l.action}</td><td>${new Date(l.timestamp).toLocaleString()}</td>`;
+            logBody.appendChild(tr);
+        });
+    }
+
+    function addNewUser() {
+        let u = document.getElementById('newUsername').value.trim();
+        let p = document.getElementById('newPassword').value.trim();
+        if(!u || !p) { alert("Enter both username and password!"); return; }
+
+        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
+            alert("Username already exists!"); return;
+        }
+
+        users.push({ username: u, pass: p, role: "user" });
+        localStorage.setItem('arwen_users_table', JSON.stringify(users));
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        loadAdminData();
+        alert("User added successfully with password.");
+    }
+
+    function removeUser(uname) {
+        let users = JSON.parse(localStorage.getItem('arwen_users_table')) || [];
+        users = users.filter(x => x.username !== uname);
+        localStorage.setItem('arwen_users_table', JSON.stringify(users));
+        loadAdminData();
     }
 
     function colLetterToIndex(letter) {
@@ -332,237 +394,112 @@
         return column - 1;
     }
 
-    // --- APP TOGGLE STATUS FUNCTIONS ---
-    function toggleAppStatus() {
-        let currentStatus = localStorage.getItem('app_status');
-        if (currentStatus === 'UP') {
-            localStorage.setItem('app_status', 'DOWN');
-        } else {
-            localStorage.setItem('app_status', 'UP');
-        }
-        loadAdminPanelData();
-    }
-
-    function loadAdminPanelData() {
-        let status = localStorage.getItem('app_status') || 'UP';
-        let badge = document.getElementById('appStatusBadge');
-        let btn = document.getElementById('appToggleBtn');
-
-        if (status === 'UP') {
-            badge.innerText = "UP (Active)";
-            badge.style.color = "green";
-            btn.innerText = "Set App Down";
-            btn.className = "btn-danger";
-        } else {
-            badge.innerText = "DOWN (Inactive)";
-            badge.style.color = "red";
-            btn.innerText = "Set App Up";
-            btn.className = "btn";
-            btn.style.backgroundColor = "#00994c";
-        }
-
-        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
-        let listUl = document.getElementById('emailList');
-        listUl.innerHTML = '';
-        emails.forEach(email => {
-            let li = document.createElement('li');
-            li.style.margin = "8px 0";
-            li.innerText = email;
-            if(!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase())) {
-                let delBtn = document.createElement('button');
-                delBtn.innerText = "Remove Access";
-                delBtn.style.marginLeft = "15px";
-                delBtn.style.padding = "3px 8px";
-                delBtn.style.backgroundColor = "red";
-                delBtn.style.fontSize = "0.8rem";
-                delBtn.onclick = () => removeEmail(email);
-                li.appendChild(delBtn);
-            }
-            listUl.appendChild(li);
-        });
-
-        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
-        let logBody = document.getElementById('activityLogBody');
-        logBody.innerHTML = '';
-        logs.slice(-50).reverse().forEach(log => {
-            let tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.email}</td><td>${log.action}</td><td>${new Date(log.timestamp).toLocaleString()}</td>`;
-            logBody.appendChild(tr);
-        });
-    }
-
-    // --- CORE PROCESSING & APP DOWN ERROR HANDLING ---
     function processReport() {
-        let appStatus = localStorage.getItem('app_status') || 'UP';
-        if (appStatus === 'DOWN') {
-            document.body.innerHTML = `
-                <div style="background-color: white; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 40px; margin: 0;">
-                    <p style="color: #333; font-family: monospace; font-size: 1rem; margin: 0;">missclm function error xlsx</p>
-                </div>
-            `;
+        if(localStorage.getItem('app_status') === 'DOWN') {
+            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
             return;
         }
 
-        const fileInput = document.getElementById('fileInput');
-        const statusMsg = document.getElementById('statusMsg');
-
-        if(fileInput.files.length === 0) {
-            alert("Pehle please koi Excel ya CSV file upload karein!");
-            return;
-        }
-
-        const file = fileInput.files[0];
-        originalFileName = "lexel cleaner_" + file.name.replace(/\.[^/.]+$/, "") + ".xlsx";
-        const reader = new FileReader();
-
+        let fileInput = document.getElementById('fileInput');
+        if(fileInput.files.length === 0) { alert("Please select a file."); return; }
+        
+        let file = fileInput.files[0];
+        originalFileName = "lexel cleaner_" + file.name;
+        let reader = new FileReader();
+        
         reader.onload = function(e) {
             try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
+                let data = new Uint8Array(e.target.result);
+                let wb = XLSX.read(data, {type:'array'});
+                let ws = wb.Sheets[wb.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(ws, {header:1});
 
-                const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                if(rows.length === 0) {
-                    alert("Sheet khali hai!");
-                    return;
-                }
+                let idxOffense = colLetterToIndex("A");
+                let idxSeverity = colLetterToIndex("U");
+                let idxDesc = colLetterToIndex("R");
+                let idxNotes = colLetterToIndex("AX");
 
-                const idxOffense = colLetterToIndex("A");
-                const idxSeverity = colLetterToIndex("U");
-                const idxDesc = colLetterToIndex("R");
-                const idxNotes = colLetterToIndex("AX");
+                let newRows = [["Offense ID", "Description Name", "MCBI Analyst write note time", "Arwen Analyst write Note Time", "Severity", "Arwen L2 Notes"]];
+                let high=0, med=0, low=0;
 
-                let newRows = [];
-                newRows.push([
-                    "Offense ID", 
-                    "Description Name", 
-                    "MCBI Analyst write note time", 
-                    "Arwen Analyst write Note Time", 
-                    "Severity", 
-                    "Arwen L2 Notes"
-                ]);
+                for(let i=1; i<rows.length; i++) {
+                    let r = rows[i];
+                    if(!r || r.length === 0) continue;
+                    let off = r[idxOffense] || "";
+                    let sev = r[idxSeverity] || "";
+                    let desc = r[idxDesc] || "";
+                    let notes = String(r[idxNotes] || "");
 
-                let highCount = 0, medCount = 0, lowCount = 0;
-
-                for (let i = 1; i < rows.length; i++) {
-                    let row = rows[i];
-                    if(!row || row.length === 0) continue;
-
-                    let offenseVal = (idxOffense < row.length && row[idxOffense] !== undefined) ? row[idxOffense] : "";
-                    let severityVal = (idxSeverity < row.length && row[idxSeverity] !== undefined) ? row[idxSeverity] : "";
-                    let descVal = (idxDesc < row.length && row[idxDesc] !== undefined) ? row[idxDesc] : "";
-                    let rawText = (idxNotes < row.length && row[idxNotes] !== undefined) ? String(row[idxNotes]) : "";
-
-                    let numSev = Number(severityVal);
-                    if (!isNaN(severityVal) && severityVal !== "") {
-                        if (numSev >= 8) highCount++;
-                        else if (numSev >= 5) medCount++;
-                        else if (numSev >= 0) lowCount++;
+                    let numSev = Number(sev);
+                    if(!isNaN(numSev) && sev !== "") {
+                        if(numSev >= 8) high++;
+                        else if(numSev >= 5) med++;
+                        else if(numSev >= 0) low++;
                     }
 
-                    rawText = rawText.replace(/â€¯/g, " ").replace(/\u00A0/g, " ");
+                    let pipe = notes.indexOf("|");
+                    let l2 = notes.indexOf("L2_arwentech");
+                    let mcbTime = "", arwenTime = "", l2Reason = "";
 
-                    let pipePos = rawText.indexOf("|");
-                    let l2Pos = rawText.indexOf("L2_arwentech");
-
-                    let mcbTime = "";
-                    let matchPos = rawText.indexOf("SOC");
-                    if (matchPos === -1) matchPos = rawText.indexOf("ISOintern");
-
-                    if (matchPos !== -1 && pipePos > matchPos) {
-                        let tempStr = rawText.substring(matchPos, pipePos);
-                        let parts = tempStr.trim().split(/\s+/);
-                        if (parts.length >= 4) {
-                            mcbTime = parts[parts.length - 4] + " " + parts[parts.length - 3] + " " + parts[parts.length - 2] + " " + parts[parts.length - 1];
-                        }
+                    let matchPos = notes.indexOf("SOC");
+                    if(matchPos === -1) matchPos = notes.indexOf("ISOintern");
+                    if(matchPos !== -1 && pipe > matchPos) {
+                        let parts = notes.substring(matchPos, pipe).trim().split(/\s+/);
+                        if(parts.length >= 4) mcbTime = parts.slice(-4).join(" ");
                     }
+                    if(l2 !== -1) arwenTime = notes.substring(l2 + 12).trim();
+                    if(pipe !== -1 && l2 > pipe) l2Reason = notes.substring(pipe + 1, l2).trim();
+                    else if(pipe !== -1 && l2 === -1) l2Reason = notes.substring(pipe + 1).trim();
 
-                    let arwenTime = "";
-                    if (l2Pos !== -1) {
-                        arwenTime = rawText.substring(l2Pos + "L2_arwentech".length).trim();
-                    }
-
-                    let l2Reason = "";
-                    if (pipePos !== -1 && l2Pos > pipePos) {
-                        l2Reason = rawText.substring(pipePos + 1, l2Pos).trim();
-                    } else if (pipePos !== -1 && l2Pos === -1) {
-                        l2Reason = rawText.substring(pipePos + 1).trim();
-                    }
-
-                    newRows.push([offenseVal, descVal, mcbTime, arwenTime, severityVal, l2Reason]);
+                    newRows.push([off, desc, mcbTime, arwenTime, sev, l2Reason]);
                 }
 
                 document.getElementById('statTotalCount').innerText = newRows.length - 1;
-                document.getElementById('statHighCount').innerText = highCount;
-                document.getElementById('statMedCount').innerText = medCount;
-                document.getElementById('statLowCount').innerText = lowCount;
+                document.getElementById('statHighCount').innerText = high;
+                document.getElementById('statMedCount').innerText = med;
+                document.getElementById('statLowCount').innerText = low;
                 document.getElementById('statsSection').style.display = 'block';
 
-                const newWs = XLSX.utils.aoa_to_sheet(newRows);
-                newWs['!cols'] = [
-                    {wch: 10.20}, {wch: 47.20}, {wch: 11.40}, {wch: 11.40}, {wch: 6.80}, {wch: 54.80}
-                ];
-
+                let newWs = XLSX.utils.aoa_to_sheet(newRows);
+                newWs['!cols'] = [{wch:10}, {wch:45}, {wch:12}, {wch:12}, {wch:7}, {wch:50}];
                 processedWorkbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(processedWorkbook, newWs, "Cleaned Report");
 
                 renderPreview(newRows);
-                statusMsg.innerText = "Data successfully cleaned and processed!";
+                document.getElementById('statusMsg').innerText = "Processed successfully!";
                 document.getElementById('previewSection').style.display = 'block';
-
-            } catch (err) {
-                console.error(err);
-                alert("Error during cleaning: Column mapping error detected.");
+            } catch(err) {
+                alert("Error processing file format.");
             }
         };
-
         reader.readAsArrayBuffer(file);
     }
 
     function renderPreview(rows) {
-        const thead = document.getElementById('previewHead');
-        const tbody = document.getElementById('previewBody');
-        thead.innerHTML = '';
+        let thead = document.getElementById('previewHead');
+        let tbody = document.getElementById('previewBody');
+        thead.innerHTML = `<tr>` + rows[0].map(h => `<th>${h}</th>`).join('') + `</tr>`;
         tbody.innerHTML = '';
-
-        let headRow = document.createElement('tr');
-        rows[0].forEach(text => {
-            let th = document.createElement('th');
-            th.innerText = text;
-            headRow.appendChild(th);
-        });
-        thead.appendChild(headRow);
-
-        let limit = Math.min(rows.length, 50);
-        for(let i = 1; i < limit; i++) {
-            let tr = document.createElement('tr');
-            let sevVal = Number(rows[i][4]);
-
-            if (!isNaN(sevVal) && rows[i][4] !== "") {
-                if (sevVal >= 8) tr.classList.add('highlight-high');
-                else if (sevVal >= 5) tr.classList.add('highlight-med');
-                else if (sevVal >= 0) tr.classList.add('highlight-low');
+        rows.slice(1, 40).forEach(r => {
+            let sev = Number(r[4]);
+            let cls = '';
+            if(!isNaN(sev)) {
+                if(sev >= 8) cls = 'highlight-high';
+                else if(sev >= 5) cls = 'highlight-med';
+                else cls = 'highlight-low';
             }
-
-            rows[i].forEach(val => {
-                let td = document.createElement('td');
-                td.innerText = val !== undefined ? val : '';
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        }
+            tbody.innerHTML += `<tr class="${cls}">` + r.map(v => `<td>${v || ''}</td>`).join('') + `</tr>`;
+        });
     }
 
     function downloadFile() {
-        if(!processedWorkbook) return;
-        XLSX.writeFile(processedWorkbook, originalFileName);
+        if(processedWorkbook) XLSX.writeFile(processedWorkbook, originalFileName);
     }
 
     function showAdminPanel() {
         document.getElementById('appScreen').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
-        loadAdminPanelData();
+        loadAdminData();
     }
 
     function showAppScreen() {
@@ -570,57 +507,15 @@
         document.getElementById('appScreen').style.display = 'block';
     }
 
-    function addAuthorizedEmail() {
-        let input = document.getElementById('newEmailInput');
-        let email = input.value.trim().toLowerCase();
-        if(!email) return;
-
-        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
-        if(!emails.includes(email)) {
-            emails.push(email);
-            localStorage.setItem('authorized_emails', JSON.stringify(emails));
-            input.value = '';
-            loadAdminPanelData();
-            alert("Email authorized successfully.");
-        } else {
-            alert("Email already exists in whitelist.");
-        }
-    }
-
-    function removeEmail(email) {
-        let emails = JSON.parse(localStorage.getItem('authorized_emails')) || [];
-        emails = emails.filter(e => e !== email);
-        localStorage.setItem('authorized_emails', JSON.stringify(emails));
-        loadAdminPanelData();
-    }
-
     function exportReport(period) {
         let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
-        let now = new Date();
-        
-        let filtered = logs.log ? logs : logs.filter(log => {
-            let logDate = new Date(log.timestamp);
-            if(period === 'day') {
-                return logDate.toDateString() === now.toDateString();
-            } else if(period === 'week') {
-                let diffTime = Math.abs(now - logDate);
-                let diffDays = diffTime / (1000 * 60 * 60 * 24);
-                return diffDays <= 7;
-            } else if(period === 'month') {
-                return logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear();
-            }
-            return true;
-        });
-
-        let reportData = [["Email", "Action", "Timestamp"]];
-        filtered.forEach(l => reportData.push([l.email, l.action, l.timestamp]));
-
-        let ws = XLSX.utils.aoa_to_sheet(reportData);
+        let data = [["User", "Action", "Timestamp"]];
+        logs.forEach(l => data.push([l.username, l.action, l.timestamp]));
+        let ws = XLSX.utils.aoa_to_sheet(data);
         let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, `${period.toUpperCase()} Report`);
-        XLSX.writeFile(wb, `Team_Activity_${period}_Report.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Activity Logs");
+        XLSX.writeFile(wb, `Audit_Report_${period}.xlsx`);
     }
 </script>
-
 </body>
 </html>
