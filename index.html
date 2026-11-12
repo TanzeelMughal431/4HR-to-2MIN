@@ -4,18 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4HR to 2MIN - Secure ArwenSOC</title>
-    <!-- Bump this together with APP_VERSION in the script on every release -->
-    <meta name="app-version" content="v3.0.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta name="referrer" content="no-referrer">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none';">
-    <script>
-        // Anti-clickjacking: refuse to run inside someone else's iframe
-        if (window.top !== window.self) {
-            document.documentElement.style.display = 'none';
-            try { window.top.location = window.self.location; } catch (e) {}
-        }
-    </script>
     <!-- SheetJS for Excel/CSV parsing & writing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -129,44 +117,48 @@
             font-weight: bold;
             color: #555;
         }
-    
-        .muted { font-size: 0.8rem; color: #777; margin-top: 4px; }
-        .btn-warn { background-color: #f0ad4e; }
-        .btn-warn:hover { background-color: #d99a3f; }
-        .btn-sm { padding: 2px 6px; font-size: 0.78rem; margin-left: 4px; }
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255,255,255,0.8); display: flex; justify-content: center;
+            align-items: center; z-index: 9999; font-weight: bold; color: var(--primary-color);
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
+
+<!-- Loading Screen while fetching from Google Sheet -->
+<div id="loadingOverlay">wait...</div>
 
 <div class="container">
     <!-- SECURE LOGIN SCREEN -->
     <div id="loginScreen" style="max-width: 400px; margin: 40px auto; text-align: center; padding: 20px;">
         <h2>ArwenSOC Flow - Login</h2>
         <p>Enter your authorized email/username & password.</p>
-        <input type="text" id="loginUsername" placeholder="Email or Username" autocomplete="username">
-        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-        <button id="btnLogin" style="width: 100%; margin-top: 10px;">Login</button>
+        <input type="text" id="loginUsername" placeholder="Email or Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="handleSecureLogin()" style="width: 100%; margin-top: 10px;">Login</button>
         <p id="loginError" style="color: red; margin-top: 15px;"></p>
     </div>
 
     <!-- MAIN APP SCREEN -->
     <div id="appScreen">
         <div class="user-info">
-            <span id="loggedInUserDisplay"></span> |
-            <button id="btnLogout" class="btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
+            <span id="loggedInUserDisplay"></span> | 
+            <button onclick="logout()" class="btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Logout</button>
         </div>
         <h2>4HR to 2MIN</h2>
         <div id="adminNavBtn" style="margin-bottom: 15px; display:none;">
-            <button id="btnAdminOpen" class="btn-secondary">Open Admin Panel & Reports</button>
+            <button onclick="showAdminPanel()" class="btn-secondary">Open Admin Panel & Reports</button>
         </div>
 
         <!-- Step 1: Upload File -->
         <div class="section">
             <h3>1. Upload Excel / CSV File</h3>
-            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
         </div>
 
-        <button type="button" id="btnProcess">Clean and Process Data</button>
+        <button type="button" onclick="processReport()">Clean and Process Data</button>
         <div class="status" id="statusMsg" style="margin-top: 10px; font-weight: bold; color: var(--primary-color);"></div>
 
         <!-- Step 3: Statistics Dashboard -->
@@ -174,7 +166,7 @@
             <h3>Statistics Dashboard</h3>
             <div class="stats-container">
                 <div class="stat-card stat-total">Total Offenses<br><span id="statTotalCount">0</span></div>
-                <div class="stat-card stat-high">High (&gt;=8)<br><span id="statHighCount">0</span></div>
+                <div class="stat-card stat-high">High (>=8)<br><span id="statHighCount">0</span></div>
                 <div class="stat-card stat-med">Medium (5-7)<br><span id="statMedCount">0</span></div>
                 <div class="stat-card stat-low">Low (0-4)<br><span id="statLowCount">0</span></div>
             </div>
@@ -189,34 +181,39 @@
                     <tbody id="previewBody"></tbody>
                 </table>
             </div>
-            <button type="button" id="btnDownload" class="btn-secondary" style="margin-top: 15px;">Download Cleaned Excel File</button>
+            <button type="button" id="downloadBtn" class="btn-secondary" onclick="downloadFile()" style="margin-top: 15px;">Download Cleaned Excel File</button>
         </div>
     </div>
 
     <!-- ADMIN PANEL & REPORTS -->
     <div id="adminPanel">
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button id="btnBackApp" class="btn-secondary">&larr; Switch to App Mode</button>
+            <button onclick="showAppScreen()" class="btn-secondary">&larr; Switch to App Mode</button>
         </div>
         <h2>Admin Panel & User Management</h2>
-
+        
         <div class="section">
             <h3>App Shutdown Control (Up / Down)</h3>
             <p>Current Status: <span id="appStatusBadge" style="font-weight:bold; color: green;">UP</span></p>
-            <button id="appToggleBtn" class="btn-danger">Set App Down</button>
-            <p class="muted">This switch is stored in this browser only.</p>
+            <button id="appToggleBtn" onclick="toggleAppStatus()" class="btn-danger">Set App Down</button>
         </div>
 
+        <!-- User Management Table with Password Visibility & Update -->
         <div class="section">
-            <h3>Manage Authorized Users & Passwords</h3>
-            <p>Add a new team account. A strong random password is generated and shown once; passwords are stored only as salted hashes and cannot be viewed later (use Reset to issue a new one).</p>
-            <input type="text" id="newUsername" placeholder="Enter Email or Username (e.g. analyst@arwentech.com)" autocomplete="off">
-            <button id="btnAddUser" style="margin-top: 5px;">Add User & Generate Password</button>
-
+            <h3>Manage Authorized Users & Passwords (Google Sheet Sync)</h3>
+            <p>Add new team accounts. A secure password (arwen786 / lexel786 format) will be generated and saved to Google Sheet:</p>
+            <input type="text" id="newUsername" placeholder="Enter Email or Username (e.g. analyst@arwentech.com)">
+            <button onclick="addNewUser()" style="margin-top: 5px;">Add User & Sync to Sheet</button>
+            
             <div class="table-responsive" style="margin-top: 15px;">
                 <table class="preview-table">
                     <thead>
-                        <tr><th>Username / Email</th><th>Role</th><th>Actions</th></tr>
+                        <tr>
+                            <th>Username / Email</th>
+                            <th>Password</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody id="userTableBody"></tbody>
                 </table>
@@ -226,13 +223,17 @@
         <div class="section">
             <h3>Team Activity Audit Logs</h3>
             <div style="margin-bottom: 15px;">
-                <button id="btnExportDay">Download Day Report (24h)</button>
-                <button id="btnExportWeek">Download Week Report (7d)</button>
+                <button onclick="exportReport('day')">Download Day Report</button>
+                <button onclick="exportReport('week')">Download Week Report</button>
             </div>
             <div class="table-responsive">
                 <table class="preview-table">
                     <thead>
-                        <tr><th>User</th><th>Action</th><th>Timestamp</th></tr>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Timestamp</th>
+                        </tr>
                     </thead>
                     <tbody id="activityLogBody"></tbody>
                 </table>
@@ -242,447 +243,302 @@
 </div>
 
 <script>
-(() => {
-    'use strict';
+    // Google Apps Script Web App URL
+    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwdEMS_a1Q0_MSXaxuXzk56kvfUxztgERy2H2hYUpm9PGzW9f-5pv-NQhc-s5DSR5Q6iQ/exec";
 
-    // =====================================================================
-    //  CONFIG
-    // =====================================================================
-    // Must match <meta name="app-version"> above. Bump BOTH on every release.
-    const APP_VERSION   = "v3.0.0";
-    const PBKDF2_ITER   = 150000;
-    const MAX_ATTEMPTS  = 5;                 // failed logins before lockout
-    const LOCK_MS       = 5 * 60 * 1000;     // lockout duration
-    const IDLE_MS       = 20 * 60 * 1000;    // auto-logout after inactivity
-    const MAX_SESSION   = 8 * 60 * 60 * 1000;// hard session limit
-    const MAX_LOGS      = 1000;
-    const MAX_FILE_MB   = 15;
-    const UPDATE_CHECK_MS = 60 * 1000;
-
-    // Admins live in CODE (as salted hashes, no plain passwords). Editing this
-    // list + bumping the version reaches every browser on the next refresh.
-    // Users added from the Admin Panel are stored locally and are always role "user".
-    const SEED_USERS = [
-{ username: "tanzeelmughal431@gmail.com", role: "admin", salt: "3b52e41132761d545ab87408139dfb5e", hash: "e3bb9171f149eee96bb6fa5ab6a244a8e83f6bdee23f0caed70b31e413f98f9d" },
-        { username: "tanzeelurrehman.engr@gmail.com", role: "admin", salt: "7cdbf4bc54479e620fbe7b67cc9c9b6e", hash: "df2250936b253d0b356952dae273542251340f6d1c6a7574cabd3bbc8479c324" },
-        { username: "tanzeel.mughal@arwentech.com", role: "admin", salt: "12f5864ed87a3dcf3809ea6b5579552f", hash: "20e9612ddd2cc55e8cde54e0b109021527928c5d31f1e05bcccb81b988f9f946" }
-    ];
-
-    const K = {
-        ver: 'arwen_app_ver', users: 'arwen2_users', logs: 'arwen2_logs',
-        status: 'arwen2_status', lock: 'arwen2_lock', sess: 'arwen2_session'
-    };
-
-    // =====================================================================
-    //  SMALL HELPERS
-    // =====================================================================
-    const $ = id => document.getElementById(id);
-    const enc = new TextEncoder();
-
-    function load(key, fallback) {
-        try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
-        catch (e) { return fallback; }
-    }
-    function save(key, val) {
-        try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; }
-    }
-    function toHex(buf) { return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
-    function fromHex(h) { return new Uint8Array(h.match(/../g).map(x => parseInt(x, 16))); }
-    function newSalt() { return toHex(crypto.getRandomValues(new Uint8Array(16))); }
-    function safeEqual(a, b) {
-        if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
-        let d = 0;
-        for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-        return d === 0;
-    }
-    async function hashPassword(pass, saltHex) {
-        const key = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveBits']);
-        const bits = await crypto.subtle.deriveBits(
-            { name: 'PBKDF2', hash: 'SHA-256', salt: fromHex(saltHex), iterations: PBKDF2_ITER }, key, 256);
-        return toHex(bits);
-    }
-    function randomPassword(len = 12) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%';
-        const limit = Math.floor(0x100000000 / chars.length) * chars.length;
-        let out = '';
-        while (out.length < len) {
-            const n = crypto.getRandomValues(new Uint32Array(1))[0];
-            if (n < limit) out += chars[n % chars.length];
-        }
-        return out;
-    }
-    function el(tag, text, cls) {
-        const e = document.createElement(tag);
-        if (text !== undefined) e.textContent = text;   // textContent => no HTML injection
-        if (cls) e.className = cls;
-        return e;
-    }
-    function actionBtn(label, cls, handler) {
-        const b = el('button', label, 'btn-sm ' + cls);
-        b.type = 'button';
-        b.addEventListener('click', handler);
-        return b;
-    }
-
-    // =====================================================================
-    //  USERS  (code seeds + local additions, merged fresh on every call)
-    // =====================================================================
-    function getUsers() {
-        const map = {};
-        SEED_USERS.forEach(s => { map[s.username] = { ...s, seed: true }; });
-        const local = load(K.users, {});
-        Object.keys(local).forEach(name => {
-            const l = local[name];
-            if (!l || !l.salt || !l.hash) return;
-            if (map[name]) {                       // seed: only a password change may be overridden locally
-                map[name].salt = l.salt; map[name].hash = l.hash;
-            } else {                               // local user: role is forced to "user"
-                map[name] = { username: name, role: 'user', salt: l.salt, hash: l.hash, seed: false };
-            }
-        });
-        return map;
-    }
-    async function setPassword(username, plain) {
-        const local = load(K.users, {});
-        const salt = newSalt();
-        local[username] = { salt, hash: await hashPassword(plain, salt) };
-        save(K.users, local);
-    }
-
-    // =====================================================================
-    //  AUDIT LOG / STATUS
-    // =====================================================================
-    function logActivity(username, action) {
-        const logs = load(K.logs, []);
-        logs.push({ username, action, timestamp: new Date().toISOString() });
-        save(K.logs, logs.slice(-MAX_LOGS));
-    }
-    function appIsDown() { return load(K.status, 'UP') === 'DOWN'; }
-    function showDownScreen() {
-        document.body.innerHTML = '<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>';
-    }
-
-    // =====================================================================
-    //  SESSION  (stores only the username + timestamps, never password/role)
-    // =====================================================================
     let currentUser = null;
     let processedWorkbook = null;
     let originalFileName = "lexel cleaner.xlsx";
-    let lastTouchWrite = 0;
+    let usersTable = [];
 
-    function startSession(username) {
-        const now = Date.now();
-        sessionStorage.setItem(K.sess, JSON.stringify({ u: username, start: now, last: now }));
-    }
-    function readSession() {
+    // Fetch users from Google Sheet on startup
+    window.onload = async function() {
         try {
-            const s = JSON.parse(sessionStorage.getItem(K.sess));
-            if (!s || !s.u) return null;
-            const now = Date.now();
-            if (now - s.last > IDLE_MS || now - s.start > MAX_SESSION) return null;
-            const user = getUsers()[s.u];     // role/validity always re-read from the user table
-            return user ? { session: s, user } : null;
-        } catch (e) { return null; }
-    }
-    function touchSession() {
-        const now = Date.now();
-        if (!currentUser || now - lastTouchWrite < 15000) return;
-        lastTouchWrite = now;
-        try {
-            const s = JSON.parse(sessionStorage.getItem(K.sess));
-            if (s) { s.last = now; sessionStorage.setItem(K.sess, JSON.stringify(s)); }
-        } catch (e) {}
-    }
-    function forceLogout(reason) {
-        if (currentUser) logActivity(currentUser.username, reason || 'LOGOUT');
-        sessionStorage.removeItem(K.sess);
-        currentUser = null;
-        location.reload();
-    }
-    function validateSession() {
-        if (!currentUser) return;
-        const r = readSession();
-        if (!r) { forceLogout('SESSION_EXPIRED'); return; }
-        if (r.user.role !== currentUser.role) { currentUser = r.user; setupUserSession(); }
-    }
-
-    // =====================================================================
-    //  LOGIN (hashed compare + lockout)
-    // =====================================================================
-    const DUMMY_SALT = '00000000000000000000000000000000';
-
-    async function handleSecureLogin() {
-        const errorEl = $('loginError');
-        const uInput = $('loginUsername').value.trim().toLowerCase();
-        const pInput = $('loginPassword').value.trim();
-
-        if (!window.crypto || !crypto.subtle) {
-            errorEl.textContent = "This browser/connection cannot run secure login. Open the page over HTTPS.";
+            let response = await fetch(SHEET_API_URL);
+            usersTable = await response.json();
+            document.getElementById('loadingOverlay').style.display = 'none';
+        } catch(e) {
+            document.getElementById('loadingOverlay').innerText = "Error connecting to Google Sheet! Check internet.";
+            console.error(e);
             return;
         }
-        const lock = load(K.lock, { count: 0, until: 0 });
-        if (lock.until > Date.now()) {
-            errorEl.textContent = `Too many attempts. Try again in ${Math.ceil((lock.until - Date.now()) / 60000)} min.`;
+
+        if (!localStorage.getItem('activity_logs')) {
+            localStorage.setItem('activity_logs', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('app_status')) {
+            localStorage.setItem('app_status', 'UP');
+        }
+
+        let savedUser = sessionStorage.getItem('current_user_obj');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            setupUserSession();
+        } else {
+            document.getElementById('loginScreen').style.display = 'block';
+        }
+    };
+
+    async function syncUsersToSheet() {
+        try {
+            await fetch(SHEET_API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(usersTable)
+            });
+        } catch(e) {
+            console.error("Sync error:", e);
+        }
+    }
+
+    function handleSecureLogin() {
+        let uInput = document.getElementById('loginUsername').value.trim().toLowerCase();
+        let pInput = document.getElementById('loginPassword').value.trim();
+        let errorEl = document.getElementById('loginError');
+
+        if(!uInput || !pInput) {
+            errorEl.innerText = "Please enter both username/email and password.";
             return;
         }
-        if (!uInput || !pInput) { errorEl.textContent = "Please enter both username/email and password."; return; }
 
-        $('btnLogin').disabled = true;
-        try {
-            const user = getUsers()[uInput];
-            // hash is computed even for unknown users so timing does not reveal valid accounts
-            const h = await hashPassword(pInput, user ? user.salt : DUMMY_SALT);
-            const ok = !!user && safeEqual(h, user.hash);
+        let matchedUser = usersTable.find(u => u.username.toLowerCase() === uInput && u.pass === pInput);
 
-            if (ok) {
-                if (user.role !== 'admin' && appIsDown()) { showDownScreen(); return; }
-                save(K.lock, { count: 0, until: 0 });
-                startSession(user.username);
-                logActivity(user.username, "LOGIN");
-                currentUser = user;
-                errorEl.textContent = "";
-                $('loginPassword').value = "";
-                setupUserSession();
-            } else {
-                lock.count = (lock.count || 0) + 1;
-                if (lock.count >= MAX_ATTEMPTS) { lock.until = Date.now() + LOCK_MS; lock.count = 0; }
-                save(K.lock, lock);
-                logActivity(uInput.slice(0, 80) || '(empty)', "LOGIN_FAILED");
-                errorEl.textContent = "Access Denied: Unrecognized account or incorrect password.";
-            }
-        } finally {
-            $('btnLogin').disabled = false;
+        if (matchedUser) {
+            currentUser = matchedUser;
+            sessionStorage.setItem('current_user_obj', JSON.stringify(matchedUser));
+            errorEl.innerText = "";
+            logActivity(matchedUser.username, "LOGIN");
+            setupUserSession();
+        } else {
+            errorEl.innerText = "Access Denied: Unrecognized account or incorrect password.";
         }
     }
 
     function setupUserSession() {
-        $('loginScreen').style.display = 'none';
-        $('adminPanel').style.display = 'none';
-        $('appScreen').style.display = 'block';
-        $('loggedInUserDisplay').textContent = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('loggedInUserDisplay').innerText = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
+
         if (currentUser.role === 'admin') {
-            $('adminNavBtn').style.display = 'block';
+            document.getElementById('adminNavBtn').style.display = 'block';
             loadAdminData();
         } else {
-            $('adminNavBtn').style.display = 'none';
+            document.getElementById('adminNavBtn').style.display = 'none';
         }
     }
 
-    // =====================================================================
-    //  ADMIN PANEL
-    // =====================================================================
-    function requireAdmin() {
-        const r = readSession();
-        if (!r || r.user.role !== 'admin') { forceLogout('SESSION_EXPIRED'); return false; }
-        currentUser = r.user;
-        return true;
+    function logout() {
+        if (currentUser) {
+            logActivity(currentUser.username, "LOGOUT");
+        }
+        sessionStorage.removeItem('current_user_obj');
+        location.reload();
+    }
+
+    function logActivity(username, action) {
+        try {
+            let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+            logs.push({ username, action, timestamp: new Date().toISOString() });
+            localStorage.setItem('activity_logs', JSON.stringify(logs));
+        } catch(e) {}
     }
 
     function toggleAppStatus() {
-        if (!requireAdmin()) return;
-        const next = appIsDown() ? 'UP' : 'DOWN';
-        save(K.status, next);
-        logActivity(currentUser.username, 'APP_SET_' + next);
+        let status = localStorage.getItem('app_status');
+        localStorage.setItem('app_status', status === 'UP' ? 'DOWN' : 'UP');
         loadAdminData();
     }
 
     function loadAdminData() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        const down = appIsDown();
-        const badge = $('appStatusBadge'), btn = $('appToggleBtn');
-        if (!down) {
-            badge.textContent = "UP (Active)"; badge.style.color = "green";
-            btn.textContent = "Set App Down"; btn.className = "btn-danger"; btn.style.backgroundColor = "";
+        let status = localStorage.getItem('app_status') || 'UP';
+        let badge = document.getElementById('appStatusBadge');
+        let btn = document.getElementById('appToggleBtn');
+        
+        if(status === 'UP') {
+            badge.innerText = "UP (Active)"; badge.style.color = "green";
+            btn.innerText = "Set App Down"; btn.className = "btn-danger";
         } else {
-            badge.textContent = "DOWN (Inactive)"; badge.style.color = "red";
-            btn.textContent = "Set App Up"; btn.className = ""; btn.style.backgroundColor = "#00994c";
+            badge.innerText = "DOWN (Inactive)"; badge.style.color = "red";
+            btn.innerText = "Set App Up"; btn.className = "btn"; btn.style.backgroundColor = "#00994c";
         }
 
-        const tbody = $('userTableBody');
-        tbody.replaceChildren();
-        Object.values(getUsers()).forEach(u => {
-            const tr = el('tr');
-            tr.appendChild(el('td', u.username));
-            tr.appendChild(el('td', u.role));
-            const td = el('td');
-            td.appendChild(actionBtn('Reset Pwd', 'btn-warn', () => resetPassword(u.username)));
-            td.appendChild(actionBtn('Set Pwd', 'btn-secondary', () => updatePassword(u.username)));
-            if (!u.seed && u.username !== currentUser.username) {
-                td.appendChild(actionBtn('Remove', 'btn-danger', () => removeUser(u.username)));
-            }
-            tr.appendChild(td);
+        let tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        usersTable.forEach(u => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.username}</td>
+                <td>
+                    <span id="pwd-text-${u.username.replace(/[@.]/g, '_')}">••••••</span>
+                    <button onclick="togglePassword('${u.username}')" style="padding:2px 6px; font-size:0.75rem; margin-left:5px;" class="btn-secondary">Show</button>
+                </td>
+                <td>${u.role}</td>
+                <td>
+                    <button onclick="updatePassword('${u.username}')" style="padding:2px 6px; font-size:0.8rem; background-color:#f0ad4e;">Update Pwd</button>
+                    ${u.username !== 'tanzeelmughal431@gmail.com' ? `<button class="btn-danger" style="padding:2px 6px; font-size:0.8rem; margin-left:5px;" onclick="removeUser('${u.username}')">Remove</button>` : ''}
+                </td>`;
             tbody.appendChild(tr);
         });
 
-        const logBody = $('activityLogBody');
-        logBody.replaceChildren();
-        load(K.logs, []).slice(-30).reverse().forEach(l => {
-            const tr = el('tr');
-            tr.appendChild(el('td', l.username));
-            tr.appendChild(el('td', l.action));
-            tr.appendChild(el('td', new Date(l.timestamp).toLocaleString()));
+        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let logBody = document.getElementById('activityLogBody');
+        logBody.innerHTML = '';
+        logs.slice(-30).reverse().forEach(l => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${l.username}</td><td>${l.action}</td><td>${new Date(l.timestamp).toLocaleString()}</td>`;
             logBody.appendChild(tr);
         });
     }
 
+    function generateRandomPassword() {
+        const prefixes = ["arwen", "lexel", "soc", "qradar", "arwentech"];
+        const suffixes = ["786", "123", "99", "2026", "sec"];
+        let p1 = prefixes[Math.floor(Math.random() * prefixes.length)];
+        let p2 = suffixes[Math.floor(Math.random() * suffixes.length)];
+        return p1 + p2;
+    }
+
     async function addNewUser() {
-        if (!requireAdmin()) return;
-        const uInput = $('newUsername').value.trim().toLowerCase();
-        if (!uInput) { alert("Please enter username or email!"); return; }
-        if (!/^[a-z0-9._@+\-]{3,80}$/.test(uInput)) { alert("Use only letters, numbers and . _ @ + - (3 to 80 characters)."); return; }
-        if (getUsers()[uInput]) { alert("User already exists!"); return; }
+        let uInput = document.getElementById('newUsername').value.trim().toLowerCase();
+        if(!uInput) { alert("Please enter username or email!"); return; }
 
-        const pass = randomPassword();
-        await setPassword(uInput, pass);
-        logActivity(currentUser.username, 'USER_ADDED: ' + uInput);
-        $('newUsername').value = '';
+        if(usersTable.some(x => x.username.toLowerCase() === uInput)) {
+            alert("User already exists!"); return;
+        }
+
+        let autoPass = generateRandomPassword();
+        usersTable.push({ username: uInput, pass: autoPass, role: "user" });
+        
+        await syncUsersToSheet();
+        document.getElementById('newUsername').value = '';
         loadAdminData();
-        alert(`User added!\nUsername: ${uInput}\nPassword: ${pass}\n\nCopy it now - it is not stored and cannot be shown again.`);
+        alert(`User successfully added and synced to Google Sheet!\nUsername: ${uInput}\nPassword: ${autoPass}`);
     }
 
-    async function resetPassword(username) {
-        if (!requireAdmin()) return;
-        if (!confirm(`Generate a new password for ${username}?`)) return;
-        const pass = randomPassword();
-        await setPassword(username, pass);
-        logActivity(currentUser.username, 'PASSWORD_RESET: ' + username);
-        alert(`New password for ${username}:\n${pass}\n\nCopy it now - it cannot be shown again.`);
+    function togglePassword(uname) {
+        let spanId = "pwd-text-" + uname.replace(/[@.]/g, '_');
+        let span = document.getElementById(spanId);
+        let userObj = usersTable.find(x => x.username === uname);
+        
+        if(span && userObj) {
+            if(span.innerText === "••••••") {
+                span.innerText = userObj.pass;
+            } else {
+                span.innerText = "••••••";
+            }
+        }
     }
 
-    async function updatePassword(username) {
-        if (!requireAdmin()) return;
-        const p = prompt(`Enter new password for ${username} (minimum 8 characters):`);
-        if (p === null) return;
-        const pass = p.trim();
-        if (pass.length < 8) { alert("Password must be at least 8 characters."); return; }
-        await setPassword(username, pass);
-        logActivity(currentUser.username, 'PASSWORD_CHANGED: ' + username);
-        alert(`Password updated for ${username}.`);
-    }
+    async function updatePassword(uname) {
+        let newPass = prompt(`Enter new password for ${uname} (e.g. arwen786 or lexel786):`);
+        if(!newPass) return;
 
-    function removeUser(username) {
-        if (!requireAdmin()) return;
-        if (!confirm(`Are you sure you want to remove access for ${username}?`)) return;
-        const local = load(K.users, {});
-        delete local[username];
-        save(K.users, local);
-        logActivity(currentUser.username, 'USER_REMOVED: ' + username);
-        loadAdminData();
-    }
-
-    function showAdminPanel() {
-        if (!requireAdmin()) return;
-        $('appScreen').style.display = 'none';
-        $('adminPanel').style.display = 'block';
-        loadAdminData();
-    }
-    function showAppScreen() {
-        $('adminPanel').style.display = 'none';
-        $('appScreen').style.display = 'block';
-    }
-
-    function exportReport(period) {
-        if (!requireAdmin()) return;
-        const span = period === 'week' ? 7 * 24 * 3600 * 1000 : 24 * 3600 * 1000;
-        const since = Date.now() - span;
-        const data = [["User", "Action", "Timestamp"]];
-        load(K.logs, []).forEach(l => {
-            if (new Date(l.timestamp).getTime() >= since) data.push([l.username, l.action, l.timestamp]);
+        usersTable = usersTable.map(u => {
+            if(u.username === uname) {
+                u.pass = newPass.trim();
+            }
+            return u;
         });
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "Activity Logs");
-        XLSX.writeFile(wb, `Audit_Report_${period}.xlsx`);
-        logActivity(currentUser.username, 'EXPORT_' + period.toUpperCase());
+
+        await syncUsersToSheet();
+        loadAdminData();
+        alert(`Password updated and synced for ${uname}!`);
     }
 
-    // =====================================================================
-    //  REPORT PROCESSING (logic unchanged; output now rendered safely)
-    // =====================================================================
+    async function removeUser(uname) {
+        if(confirm(`Are you sure you want to remove access for ${uname}?`)) {
+            usersTable = usersTable.filter(x => x.username !== uname);
+            await syncUsersToSheet();
+            loadAdminData();
+        }
+    }
+
     function colLetterToIndex(letter) {
         let column = 0;
-        for (let i = 0; i < letter.length; i++) {
-            column += (letter.charCodeAt(i) - 64) * Math.pow(26, letter.length - i - 1);
+        let length = letter.length;
+        for (let i = 0; i < length; i++) {
+            column += (letter.charCodeAt(i) - 64) * Math.pow(26, length - i - 1);
         }
         return column - 1;
     }
 
     function processReport() {
-        const r = readSession();
-        if (!r) { forceLogout('SESSION_EXPIRED'); return; }
-        currentUser = r.user;
-        if (appIsDown()) { showDownScreen(); return; }   // original behaviour kept: DOWN blocks processing
+        if(localStorage.getItem('app_status') === 'DOWN') {
+            document.body.innerHTML = `<div style="background:white;width:100vw;height:100vh;position:fixed;top:0;left:0;display:flex;justify-content:center;align-items:center;"><p style="font-family:monospace;">missclm function error xlsx</p></div>`;
+            return;
+        }
 
-        const fileInput = $('fileInput');
-        if (fileInput.files.length === 0) { alert("Please select a file."); return; }
-        const file = fileInput.files[0];
-        if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { alert("Only .xlsx, .xls or .csv files are allowed."); return; }
-        if (file.size > MAX_FILE_MB * 1024 * 1024) { alert(`File is too large (max ${MAX_FILE_MB} MB).`); return; }
-
-        originalFileName = ("lexel cleaner_" + file.name).replace(/[\\/:*?"<>|]/g, '_');
-        const reader = new FileReader();
-
-        reader.onload = function (e) {
+        let fileInput = document.getElementById('fileInput');
+        if(fileInput.files.length === 0) { alert("Please select a file."); return; }
+        
+        let file = fileInput.files[0];
+        originalFileName = "lexel cleaner_" + file.name;
+        let reader = new FileReader();
+        
+        reader.onload = function(e) {
             try {
-                const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                let data = new Uint8Array(e.target.result);
+                let wb = XLSX.read(data, {type:'array'});
+                let ws = wb.Sheets[wb.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(ws, {header:1});
 
-                const idxOffense = colLetterToIndex("A");
-                const idxSeverity = colLetterToIndex("U");
-                const idxDesc = colLetterToIndex("R");
-                const idxNotes = colLetterToIndex("AX");
+                let idxOffense = colLetterToIndex("A");
+                let idxSeverity = colLetterToIndex("U");
+                let idxDesc = colLetterToIndex("R");
+                let idxNotes = colLetterToIndex("AX");
 
-                const newRows = [["Offense ID", "Description Name", "MCBI Analyst write note time", "Arwen Analyst write Note Time", "Severity", "Arwen L2 Notes"]];
-                let high = 0, med = 0, low = 0;
+                let newRows = [["Offense ID", "Description Name", "MCBI Analyst write note time", "Arwen Analyst write Note Time", "Severity", "Arwen L2 Notes"]];
+                let high=0, med=0, low=0;
 
-                for (let i = 1; i < rows.length; i++) {
-                    const r = rows[i];
-                    if (!r || r.length === 0) continue;
-                    const off = r[idxOffense] || "";
-                    const sev = r[idxSeverity] || "";
-                    const desc = r[idxDesc] || "";
-                    const notes = String(r[idxNotes] || "");
+                for(let i=1; i<rows.length; i++) {
+                    let r = rows[i];
+                    if(!r || r.length === 0) continue;
+                    let off = r[idxOffense] || "";
+                    let sev = r[idxSeverity] || "";
+                    let desc = r[idxDesc] || "";
+                    let notes = String(r[idxNotes] || "");
 
-                    const numSev = Number(sev);
-                    if (!isNaN(numSev) && sev !== "") {
-                        if (numSev >= 8) high++;
-                        else if (numSev >= 5) med++;
-                        else if (numSev >= 0) low++;
+                    let numSev = Number(sev);
+                    if(!isNaN(numSev) && sev !== "") {
+                        if(numSev >= 8) high++;
+                        else if(numSev >= 5) med++;
+                        else if(numSev >= 0) low++;
                     }
 
-                    const pipe = notes.indexOf("|");
-                    const l2 = notes.indexOf("L2_arwentech");
+                    let pipe = notes.indexOf("|");
+                    let l2 = notes.indexOf("L2_arwentech");
                     let mcbTime = "", arwenTime = "", l2Reason = "";
 
                     let matchPos = notes.indexOf("SOC");
-                    if (matchPos === -1) matchPos = notes.indexOf("ISOintern");
-                    if (matchPos !== -1 && pipe > matchPos) {
-                        const parts = notes.substring(matchPos, pipe).trim().split(/\s+/);
-                        if (parts.length >= 4) mcbTime = parts.slice(-4).join(" ");
+                    if(matchPos === -1) matchPos = notes.indexOf("ISOintern");
+                    if(matchPos !== -1 && pipe > matchPos) {
+                        let parts = notes.substring(matchPos, pipe).trim().split(/\s+/);
+                        if(parts.length >= 4) mcbTime = parts.slice(-4).join(" ");
                     }
-                    if (l2 !== -1) arwenTime = notes.substring(l2 + 12).trim();
-                    if (pipe !== -1 && l2 > pipe) l2Reason = notes.substring(pipe + 1, l2).trim();
-                    else if (pipe !== -1 && l2 === -1) l2Reason = notes.substring(pipe + 1).trim();
+                    if(l2 !== -1) arwenTime = notes.substring(l2 + 12).trim();
+                    if(pipe !== -1 && l2 > pipe) l2Reason = notes.substring(pipe + 1, l2).trim();
+                    else if(pipe !== -1 && l2 === -1) l2Reason = notes.substring(pipe + 1).trim();
 
                     newRows.push([off, desc, mcbTime, arwenTime, sev, l2Reason]);
                 }
 
-                $('statTotalCount').textContent = newRows.length - 1;
-                $('statHighCount').textContent = high;
-                $('statMedCount').textContent = med;
-                $('statLowCount').textContent = low;
-                $('statsSection').style.display = 'block';
+                document.getElementById('statTotalCount').innerText = newRows.length - 1;
+                document.getElementById('statHighCount').innerText = high;
+                document.getElementById('statMedCount').innerText = med;
+                document.getElementById('statLowCount').innerText = low;
+                document.getElementById('statsSection').style.display = 'block';
 
-                const newWs = XLSX.utils.aoa_to_sheet(newRows);
-                newWs['!cols'] = [{ wch: 10 }, { wch: 45 }, { wch: 12 }, { wch: 12 }, { wch: 7 }, { wch: 50 }];
+                let newWs = XLSX.utils.aoa_to_sheet(newRows);
+                newWs['!cols'] = [{wch:10}, {wch:45}, {wch:12}, {wch:12}, {wch:7}, {wch:50}];
                 processedWorkbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(processedWorkbook, newWs, "Cleaned Report");
 
                 renderPreview(newRows);
-                $('statusMsg').textContent = "Processed successfully!";
-                $('previewSection').style.display = 'block';
-                logActivity(currentUser.username, 'PROCESSED_FILE');
-            } catch (err) {
+                document.getElementById('statusMsg').innerText = "Processed successfully!";
+                document.getElementById('previewSection').style.display = 'block';
+            } catch(err) {
                 alert("Error processing file format.");
             }
         };
@@ -690,136 +546,46 @@
     }
 
     function renderPreview(rows) {
-        const thead = $('previewHead'), tbody = $('previewBody');
-        thead.replaceChildren();
-        tbody.replaceChildren();
-        const hr = el('tr');
-        rows[0].forEach(h => hr.appendChild(el('th', h)));
-        thead.appendChild(hr);
-
+        let thead = document.getElementById('previewHead');
+        let tbody = document.getElementById('previewBody');
+        thead.innerHTML = `<tr>` + rows[0].map(h => `<th>${h}</th>`).join('') + `</tr>`;
+        tbody.innerHTML = '';
         rows.slice(1, 40).forEach(r => {
-            const sev = Number(r[4]);
+            let sev = Number(r[4]);
             let cls = '';
-            if (!isNaN(sev)) {
-                if (sev >= 8) cls = 'highlight-high';
-                else if (sev >= 5) cls = 'highlight-med';
+            if(!isNaN(sev)) {
+                if(sev >= 8) cls = 'highlight-high';
+                else if(sev >= 5) cls = 'highlight-med';
                 else cls = 'highlight-low';
             }
-            const tr = el('tr', undefined, cls);
-            r.forEach(v => tr.appendChild(el('td', v === undefined || v === null ? '' : String(v))));
-            tbody.appendChild(tr);
+            tbody.innerHTML += `<tr class="${cls}">` + r.map(v => `<td>${v || ''}</td>`).join('') + `</tr>`;
         });
     }
 
     function downloadFile() {
-        if (!processedWorkbook) return;
-        const r = readSession();
-        if (!r) { forceLogout('SESSION_EXPIRED'); return; }
-        XLSX.writeFile(processedWorkbook, originalFileName);
-        logActivity(r.user.username, 'DOWNLOADED_REPORT');
+        if(processedWorkbook) XLSX.writeFile(processedWorkbook, originalFileName);
     }
 
-    // =====================================================================
-    //  LIVE UPDATE: always pick up the newest HTML on refresh / while open
-    // =====================================================================
-    async function checkForUpdate() {
-        if (location.protocol === 'file:') return;
-        try {
-            const res = await fetch(location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
-            if (!res.ok) return;
-            const m = (await res.text()).match(/name="app-version"\s+content="([^"]+)"/);
-            if (!m || m[1] === APP_VERSION) return;
-            const guard = 'arwen_reload_' + m[1];
-            if (sessionStorage.getItem(guard)) return;      // never loop
-            sessionStorage.setItem(guard, '1');
-            if (window.caches) { try { (await caches.keys()).forEach(k => caches.delete(k)); } catch (e) {} }
-            location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
-        } catch (e) { /* offline: ignore */ }
+    function showAdminPanel() {
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadAdminData();
     }
 
-    // =====================================================================
-    //  ONE-TIME MIGRATION from the old plain-text storage format
-    // =====================================================================
-    async function migrateLegacy() {
-        const oldUsers = load('arwen_users_table', null);
-        if (Array.isArray(oldUsers) && window.crypto && crypto.subtle) {
-            const seedMap = {};
-            SEED_USERS.forEach(s => { seedMap[s.username] = s; });
-            const local = load(K.users, {});
-            for (const o of oldUsers) {
-                if (!o || !o.username || !o.pass) continue;
-                const name = String(o.username).toLowerCase();
-                const seed = seedMap[name];
-                if (seed && safeEqual(await hashPassword(String(o.pass), seed.salt), seed.hash)) continue; // unchanged seed
-                if (local[name]) continue;
-                const salt = newSalt();
-                local[name] = { salt, hash: await hashPassword(String(o.pass), salt) };
-            }
-            save(K.users, local);
-        }
-        const oldLogs = load('activity_logs', null);
-        if (Array.isArray(oldLogs) && oldLogs.length) {
-            save(K.logs, load(K.logs, []).concat(oldLogs).slice(-MAX_LOGS));
-        }
-        const oldStatus = load('app_status', null);
-        if (oldStatus === 'UP' || oldStatus === 'DOWN') save(K.status, oldStatus);
-        ['arwen_users_table', 'activity_logs', 'app_status'].forEach(k => localStorage.removeItem(k));
+    function showAppScreen() {
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
     }
 
-    // =====================================================================
-    //  BOOT
-    // =====================================================================
-    async function init() {
-        // On a version change we keep users/logs (migrated, not wiped) and only retire the old format
-        if (localStorage.getItem(K.ver) !== APP_VERSION) {
-            try { await migrateLegacy(); } catch (e) {}
-            localStorage.setItem(K.ver, APP_VERSION);
-        }
-
-        $('btnLogin').addEventListener('click', handleSecureLogin);
-        $('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleSecureLogin(); });
-        $('loginUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleSecureLogin(); });
-        $('btnLogout').addEventListener('click', () => forceLogout('LOGOUT'));
-        $('btnAdminOpen').addEventListener('click', showAdminPanel);
-        $('btnBackApp').addEventListener('click', showAppScreen);
-        $('btnProcess').addEventListener('click', processReport);
-        $('btnDownload').addEventListener('click', downloadFile);
-        $('appToggleBtn').addEventListener('click', toggleAppStatus);
-        $('btnAddUser').addEventListener('click', addNewUser);
-        $('btnExportDay').addEventListener('click', () => exportReport('day'));
-        $('btnExportWeek').addEventListener('click', () => exportReport('week'));
-
-        ['click', 'keydown', 'mousemove', 'touchstart'].forEach(ev =>
-            document.addEventListener(ev, touchSession, { passive: true }));
-        setInterval(validateSession, 30000);
-
-        // Changes made in another tab (user removed, password changed, app down) apply immediately here
-        window.addEventListener('storage', e => {
-            if (!e.key || e.key === K.users || e.key === K.status) {
-                validateSession();
-                if (appIsDown() && currentUser && currentUser.role !== 'admin') showDownScreen();
-                if (currentUser && currentUser.role === 'admin') loadAdminData();
-            }
-        });
-
-        // Re-check for a newer deployment on load, when the tab becomes visible, and every minute
-        checkForUpdate();
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
-        setInterval(checkForUpdate, UPDATE_CHECK_MS);
-
-        const r = readSession();
-        if (r) {
-            currentUser = r.user;
-            if (currentUser.role !== 'admin' && appIsDown()) { showDownScreen(); return; }
-            setupUserSession();
-        } else {
-            sessionStorage.removeItem(K.sess);
-            $('loginScreen').style.display = 'block';
-        }
+    function exportReport(period) {
+        let logs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let data = [["User", "Action", "Timestamp"]];
+        logs.forEach(l => data.push([l.username, l.action, l.timestamp]));
+        let ws = XLSX.utils.aoa_to_sheet(data);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Activity Logs");
+        XLSX.writeFile(wb, `Audit_Report_${period}.xlsx`);
     }
-
-    init();
-})();
 </script>
 </body>
 </html>
